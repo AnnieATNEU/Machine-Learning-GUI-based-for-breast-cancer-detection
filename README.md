@@ -4,7 +4,7 @@ https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true
 # How to install:
 1. Recommended to run this python program through Visual Studio Code
 2. Clone this github repository 
-3. Unzip and open the folder in Visual Studio Code
+3. Unzip the project, unzip the "breast-histopathology-images" data and open the folder in Visual Studio Code
 4. On a terminal in Visual Studio Code type "python -m venv .venv"  
 **this will allow you to manage separate package installations for different projects**
 5. Do command Ctrl + Shift + P and select "Python: Select Interpreter" Find the .venv 
