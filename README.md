@@ -1,6 +1,5 @@
 # GVEO - is a user interface Artificial Intelligence Machine Learning Model that can predict (IDC) Breast Cancer
-https://github.com/adequitATSSU/UI-for-AI-Machine-Learning-model_Breast-Cancer-Prediction_/blob/main/image.jpg?raw=true
-https://github.com/adequitATSSU/UI-for-AI-Machine-Learning-model_Breast-Cancer-Prediction_/tree/main/program_screenshots/gveo1(1).png?raw=true
+![gveo1 (1)](https://user-images.githubusercontent.com/77852190/191778979-2f251539-1f36-4b57-967c-a4c7d45f9be3.png)
 
 # How to install:
 1. Recommended to run this python program through Visual Studio Code
@@ -22,3 +21,5 @@ pip install -r requirements.txt -t <copy-full-pathto-your\.venv\Lib\site-package
 9. if upgrading pip is required do : python -m pip install --upgrade pip
 
 
+![gveo1 (2)](https://user-images.githubusercontent.com/77852190/191779136-88650029-ff08-4311-93fc-2450cb7dd046.png)
+![gveo1 (3)](https://user-images.githubusercontent.com/77852190/191779176-c2c03ef6-8ad8-410d-8fbc-a09e2e15cd5a.png)
