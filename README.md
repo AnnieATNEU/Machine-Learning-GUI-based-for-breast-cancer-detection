@@ -1,7 +1,7 @@
 # GVEO - is a User interface for Artificial Intelligence Machine Learning Model that can predict Breast Cancer (IDC)
 https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true
 
-#How to install:
+# How to install:
 1. Recommended to run this python program through Visual Studio Code
 2. Clone this github repository 
 3. Unzip and open the folder in Visual Studio Code
@@ -16,9 +16,8 @@ Once you're in that path type :   activate
 7. Then to get back to main folder do: cd ../../      
 8. Then install : pip install -r requirements.txt   "make sure all modules are downloaded in the same .venv location u created"
 to select the right Interpreter you created, press: Ctrl+Shift+P click "Python: Select Interpreter", then choose the interpreter in the environment u just created
-#**If it is installing in wrong location, to force installing it in the right .venv location do:
+**If it is installing in wrong location, to force installing it in the right .venv location do:
 pip install -r requirements.txt -t <copy-full-pathto-your\.venv\Lib\site-packages>
-
 9. if upgrading pip is required do : python -m pip install --upgrade pip
 
 
