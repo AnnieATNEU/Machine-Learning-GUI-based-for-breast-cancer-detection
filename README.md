@@ -1,5 +1,6 @@
-# GVEO - is a User Interface for Artificial Intelligence Machine Learning Model that can predict Breast Cancer (IDC)
+# GVEO - is a User interface for Artificial Intelligence Machine Learning Model that can predict Breast Cancer (IDC)
 https://github.com/[username]/[reponame]/blob/[branch]/image.jpg?raw=true
+
 #How to install:
 1. Recommended to run this python program through Visual Studio Code
 2. Clone this github repository 
