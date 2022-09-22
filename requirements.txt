@@ -1,0 +1,7 @@
+PyQt5
+scikit-learn
+
+skimage
+torch
+torchvision
+pandas
