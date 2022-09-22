@@ -16,7 +16,7 @@ Once you're in that path type :   activate
 7. Then to get back to main folder do: cd ../../      
 8. Then install : pip install -r requirements.txt   "make sure all modules are downloaded in the same .venv location u created"
 to select the right Interpreter you created, press: Ctrl+Shift+P click "Python: Select Interpreter", then choose the interpreter in the environment u just created
-**If it is installing in wrong location, to force installing it in the right .venv location do:
+**If it is installing in wrong location, to force installing it in the right .venv location do:**
 pip install -r requirements.txt -t <copy-full-pathto-your\.venv\Lib\site-packages>
 9. if upgrading pip is required do : python -m pip install --upgrade pip
 
