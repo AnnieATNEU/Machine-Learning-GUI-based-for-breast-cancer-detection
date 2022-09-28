@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMainWindow, QAction, QMenuBar, QMessageBox, QProgre
 from PyQt5.QtGui import QFont , QMovie
 from DirectoryModel import DirProxyModel
 from PyQt5.QtWebEngineWidgets import QWebEngineView 
+from PySide2extn.RoundProgressBar import roundProgressBar
 import os,sys, pandas as pd, seaborn as sns, matplotlib.pyplot as plt
 # from matplotlib.axes import Subplot as plt
 
@@ -20,6 +21,11 @@ class Ui_mainWindow(object):
 #========= setting up some GLOBAL variable values=============
         self.pathfiles =  'C:/Users/a_ade/Desktop/Files/Capstone/Breast_Cancer/testoutput1.csv'
         self.df = pd.read_csv(self.pathfiles)
+        # self.base_path = "breast-histopathology-images/IDC_regular_ps50_idx5/"
+
+        # train_dataset = BreastCancerDataset(train_df, transform=my_transform(key="train"))
+        # dev_dataset = BreastCancerDataset(dev_df, transform=my_transform(key="val"))
+        # test_dataset = BreastCancerDataset(test_df, transform=my_transform(key="val"))
 
 #======================================================================================
 
@@ -130,6 +136,17 @@ class Ui_mainWindow(object):
         self.BigScreenWidget.setGeometry(QtCore.QRect(12, 60, 1382, 797))
         self.BigScreenWidget.setStyleSheet("background-color: rgb(233, 255, 250);")
         self.BigScreenWidget.setObjectName("BigScreenWidget")
+
+        # self.scrollArea =QtWidgets.QScrollArea(self.tab1Behindwidget)
+        # self.scrollArea.setObjectName("scrollArea")
+        # self.scrollArea.setGeometry(QtCore.QRect(0, 0, 1381, 801))
+        # self.scrollArea.setWidgetResizable(True)
+        # self.scrollAreaWidgetContents = QtWidgets.QWidget()
+        # self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
+        # self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 1379, 799))
+        # self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+        # self.scrollArea.setVisible(False)
+        # self.scrollAreaWidgetContents.setVisible(False)
 #========================================================================
 
         self.plottingLeftWidget = QtWidgets.QWidget(self.tab1Behindwidget)
@@ -176,9 +193,16 @@ class Ui_mainWindow(object):
 "\n"
 "")
 
+        self.rowsCount_01 = QtWidgets.QLineEdit(self.tab1Behindwidget)
+        self.rowsCount_01.setGeometry(QtCore.QRect(10, 20, 251, 31))
+        self.rowsCount_01.setAutoFillBackground(False)
+        self.rowsCount_01.setReadOnly(True)
+        self.rowsCount_01.setVisible(False)
 
-        self.middleLabel = QtWidgets.QLabel(self.labelWithPhoto)
-        self.middleLabel.setGeometry(QtCore.QRect(60, 30, 351, 171))
+
+
+        self.middleLabel = QtWidgets.QLabel(mainWindow)
+        self.middleLabel.setGeometry(QtCore.QRect(432, 165, 371, 171))
         self.middleLabel.setStyleSheet("\n"
 "QLabel#middleLabel{\n"
 "    background-color: rgb(231, 255, 247);\n"
@@ -347,13 +371,13 @@ class Ui_mainWindow(object):
         self.reviewPatches.setObjectName("reviewPatches")
 #=====================================================================
         self.frame = QtWidgets.QFrame(self.tab)
-        self.frame.setGeometry(QtCore.QRect(0, 200, 361, 160))
+        self.frame.setGeometry(QtCore.QRect(0, 190, 361, 160))
         self.frame.setStyleSheet("    background-color: rgb(43, 86, 129);")
         self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame.setObjectName("frame")
         self.visualizeBinary = QtWidgets.QPushButton(self.frame)
-        self.visualizeBinary.setGeometry(QtCore.QRect(0, 73, 361, 31))
+        self.visualizeBinary.setGeometry(QtCore.QRect(0, 73, 356, 37))
         self.visualizeBinary.setStyleSheet("\n"
 "QPushButton#visualizeBinary{\n"
 "        font: 500 9pt \"Segoe UI\";\n"
@@ -381,7 +405,7 @@ class Ui_mainWindow(object):
         self.visualizeBinary.setIconSize(QtCore.QSize(30, 30))
         self.visualizeBinary.setObjectName("visualizeBinary")
         self.visualizeBreastTissue = QtWidgets.QPushButton(self.frame)
-        self.visualizeBreastTissue.setGeometry(QtCore.QRect(0, 111, 361, 31))
+        self.visualizeBreastTissue.setGeometry(QtCore.QRect(0, 115, 356, 36))
         self.visualizeBreastTissue.setStyleSheet("\n"
 "QPushButton#visualizeBreastTissue{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -414,7 +438,7 @@ class Ui_mainWindow(object):
 "background-color: rgb(231, 255, 247);")
         self.viewBreastTissueLabel.setObjectName("viewBreastTissueLabel")
         self.breastTissuePatches = QtWidgets.QPushButton(self.frame)
-        self.breastTissuePatches.setGeometry(QtCore.QRect(0, 35, 361, 31))
+        self.breastTissuePatches.setGeometry(QtCore.QRect(0, 31, 356, 37))
         self.breastTissuePatches.setStyleSheet("\n"
 "QPushButton#breastTissuePatches{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -441,21 +465,21 @@ class Ui_mainWindow(object):
         self.breastTissuePatches.setIconSize(QtCore.QSize(28, 28))
         self.breastTissuePatches.setObjectName("breastTissuePatches")
         self.machineLearningModelLabel = QtWidgets.QLabel(self.tab)
-        self.machineLearningModelLabel.setGeometry(QtCore.QRect(51, 396, 241, 21))
+        self.machineLearningModelLabel.setGeometry(QtCore.QRect(53, 370, 241, 21))
         self.machineLearningModelLabel.setStyleSheet("font: 600 9pt \"Segoe UI\";\n"
 "border-color: rgb(0, 170, 255);\n"
 "text-decoration: underline;")
         self.machineLearningModelLabel.setObjectName("machineLearningModelLabel")
         self.machineLearningCnnFrame = QtWidgets.QFrame(self.tab)
-        self.machineLearningCnnFrame.setGeometry(QtCore.QRect(-2, 390, 361, 238))
+        self.machineLearningCnnFrame.setGeometry(QtCore.QRect(0, 366, 361, 521))
         self.machineLearningCnnFrame.setStyleSheet("    background-color: rgb(43, 86, 129);")
         self.machineLearningCnnFrame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.machineLearningCnnFrame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.machineLearningCnnFrame.setObjectName("machineLearningCnnFrame")
-        self.CNNimageDatasets = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.CNNimageDatasets.setGeometry(QtCore.QRect(2, 36, 361, 31))
-        self.CNNimageDatasets.setStyleSheet("\n"
-"QPushButton#CNNimageDatasets{\n"
+        self.ViewDatasets = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.ViewDatasets.setGeometry(QtCore.QRect(5, 36, 351, 41))
+        self.ViewDatasets.setStyleSheet("\n"
+"QPushButton#ViewDatasets{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
 "    \n"
 "border-color:rgb(16, 79, 127);\n"
@@ -468,7 +492,7 @@ class Ui_mainWindow(object):
 "\n"
 ";}\n"
 "\n"
-"QPushButton:hover#CNNimageDatasets\n"
+"QPushButton:hover#ViewDatasets\n"
 "{\n"
 "border-width:2px;\n"
 "border-color: rgb(84, 204, 255);\n"
@@ -477,13 +501,13 @@ class Ui_mainWindow(object):
 "")
         icon6 = QtGui.QIcon()
         icon6.addPixmap(QtGui.QPixmap("imagesicons/fax-icon-png-4933.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
-        self.CNNimageDatasets.setIcon(icon6)
-        self.CNNimageDatasets.setIconSize(QtCore.QSize(22, 22))
-        self.CNNimageDatasets.setObjectName("CNNimageDatasets")
-        self.trainDevTest = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.trainDevTest.setGeometry(QtCore.QRect(30, 75, 311, 31))
-        self.trainDevTest.setStyleSheet("\n"
-"QPushButton#trainDevTest{\n"
+        self.ViewDatasets.setIcon(icon6)
+        self.ViewDatasets.setIconSize(QtCore.QSize(22, 22))
+        self.ViewDatasets.setObjectName("ViewDatasets")
+        self.createDatasetButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.createDatasetButton.setGeometry(QtCore.QRect(9, 82, 341, 31))
+        self.createDatasetButton.setStyleSheet("\n"
+"QPushButton#createDatasetButton{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
 "    \n"
 "border-color:rgb(16, 79, 127);\n"
@@ -496,7 +520,7 @@ class Ui_mainWindow(object):
 "\n"
 ";}\n"
 "\n"
-"QPushButton:hover#trainDevTest\n"
+"QPushButton:hover#createDatasetButton\n"
 "{\n"
 "border-width:2px;\n"
 "border-color: rgb(84, 204, 255);\n"
@@ -505,13 +529,14 @@ class Ui_mainWindow(object):
 "")
         icon7 = QtGui.QIcon()
         icon7.addPixmap(QtGui.QPixmap("imagesicons/server-icons-3716.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
-        self.trainDevTest.setIcon(icon7)
-        self.trainDevTest.setIconSize(QtCore.QSize(23, 23))
-        self.trainDevTest.setObjectName("trainDevTest")
-        self.scanBreastTissueImages = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.scanBreastTissueImages.setGeometry(QtCore.QRect(35, 180, 301, 31))
-        self.scanBreastTissueImages.setStyleSheet("\n"
-"QPushButton#scanBreastTissueImages{\n"
+        self.createDatasetButton.setIcon(icon7)
+        self.createDatasetButton.setIconSize(QtCore.QSize(23, 23))
+        self.createDatasetButton.setObjectName("createDatasetButton")
+
+        self.applyCNNfilter_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.applyCNNfilter_Button.setGeometry(QtCore.QRect(8, 120, 341, 39))
+        self.applyCNNfilter_Button.setStyleSheet("\n"
+"QPushButton#applyCNNfilter_Button{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
 "    \n"
 "border-color:rgb(16, 79, 127);\n"
@@ -524,7 +549,7 @@ class Ui_mainWindow(object):
 "\n"
 ";}\n"
 "\n"
-"QPushButton:hover#scanBreastTissueImages\n"
+"QPushButton:hover#applyCNNfilter_Button\n"
 "{\n"
 "border-width:2px;\n"
 "border-color: rgb(84, 204, 255);\n"
@@ -532,12 +557,194 @@ class Ui_mainWindow(object):
 "\n"
 "")
         icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap("imagesicons/filesicon2.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
-        self.scanBreastTissueImages.setIcon(icon8)
-        self.scanBreastTissueImages.setIconSize(QtCore.QSize(23, 23))
-        self.scanBreastTissueImages.setObjectName("scanBreastTissueImages")
-        self.searchPatientID = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
-        self.searchPatientID.setGeometry(QtCore.QRect(56, 140, 251, 31))
+        icon8.addPixmap(QtGui.QPixmap("imagesicons/logo3.jpg"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.applyCNNfilter_Button.setIcon(icon8)
+        self.applyCNNfilter_Button.setIconSize(QtCore.QSize(39, 55))
+        self.applyCNNfilter_Button.setObjectName("applyCNNfilter_Button")
+
+        self.Search_OptimalCyclicalButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.Search_OptimalCyclicalButton.setGeometry(QtCore.QRect(8, 166, 341, 41))
+        self.Search_OptimalCyclicalButton.setStyleSheet("\n"
+"QPushButton#Search_OptimalCyclicalButton{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"    background-color: rgb(180, 226, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#Search_OptimalCyclicalButton\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        icon8 = QtGui.QIcon()
+        icon8.addPixmap(QtGui.QPixmap("imagesicons/logo1.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.Search_OptimalCyclicalButton.setIcon(icon8)
+        self.Search_OptimalCyclicalButton.setIconSize(QtCore.QSize(30, 30))
+        self.Search_OptimalCyclicalButton.setObjectName("Search_OptimalCyclicalButton")
+
+        self.idcprobabilityMap_button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.idcprobabilityMap_button.setGeometry(QtCore.QRect(8, 214, 341, 41))
+        self.idcprobabilityMap_button.setStyleSheet("\n"
+"QPushButton#idcprobabilityMap_button{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"    background-color: rgb(180, 226, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#idcprobabilityMap_button\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        icon10 = QtGui.QIcon()
+        icon10.addPixmap(QtGui.QPixmap("imagesicons/logo2.jpg"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.idcprobabilityMap_button.setIcon(icon10)
+        self.idcprobabilityMap_button.setIconSize(QtCore.QSize(30, 30))
+        self.idcprobabilityMap_button.setObjectName("idcprobabilityMap_button")
+        self.validationDataSet_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.validationDataSet_Button.setGeometry(QtCore.QRect(8, 261, 341, 35))
+        self.validationDataSet_Button.setStyleSheet("\n"
+"QPushButton#validationDataSet_Button{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"    background-color: rgb(180, 226, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#validationDataSet_Button\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        icon11 = QtGui.QIcon()
+        icon11.addPixmap(QtGui.QPixmap("imagesicons/logo5.jpg"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.validationDataSet_Button.setIcon(icon11)
+        self.validationDataSet_Button.setIconSize(QtCore.QSize(30, 30))
+        self.validationDataSet_Button.setObjectName("validationDataSet_Button")
+        self.validationConfusionMatrix_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.validationConfusionMatrix_Button.setGeometry(QtCore.QRect(8, 301, 341, 35))
+        self.validationConfusionMatrix_Button.setStyleSheet("\n"
+"QPushButton#validationConfusionMatrix_Button{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"    background-color: rgb(180, 226, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#validationConfusionMatrix_Button\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        icon12 = QtGui.QIcon()
+        icon12.addPixmap(QtGui.QPixmap("imagesicons/logo6.jpg"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.validationConfusionMatrix_Button.setIcon(icon12)
+        self.validationConfusionMatrix_Button.setIconSize(QtCore.QSize(30, 30))
+        self.validationConfusionMatrix_Button.setObjectName("validationConfusionMatrix_Button")
+        self.viewAllpatients_probabilityButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.viewAllpatients_probabilityButton.setGeometry(QtCore.QRect(8,340, 341, 34))
+        self.viewAllpatients_probabilityButton.setStyleSheet("\n"
+"QPushButton#viewAllpatients_probabilityButton{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"background-color: rgb(149, 200, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#viewAllpatients_probabilityButton\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        icon7 = QtGui.QIcon()
+        icon7.addPixmap(QtGui.QPixmap("imagesicons/filesicon2.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.viewAllpatients_probabilityButton.setIcon(icon7)
+        self.viewAllpatients_probabilityButton.setIconSize(QtCore.QSize(23, 23))
+        self.viewAllpatients_probabilityButton.setObjectName("viewAllpatients_probabilityButton")
+        
+        
+        
+        self.predictionResult = QtWidgets.QPushButton(self.machineLearningCnnFrame)
+        self.predictionResult.setGeometry(QtCore.QRect(50, 470, 251, 41))
+        self.predictionResult.setStyleSheet("\n"
+"QPushButton#predictionResult{\n"
+"    font: 700 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"background-color: rgb(149, 200, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#predictionResult\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        icon13 = QtGui.QIcon()
+        icon13.addPixmap(QtGui.QPixmap("imagesicons/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
+        self.predictionResult.setIcon(icon13)
+        self.predictionResult.setIconSize(QtCore.QSize(30, 30))
+        self.predictionResult.setObjectName("predictionResult")
+
+
+        self.dividerFrameEnterPatient = QtWidgets.QFrame(self.machineLearningCnnFrame)
+        self.dividerFrameEnterPatient.setGeometry(QtCore.QRect(8, 390, 341, 72))
+        self.dividerFrameEnterPatient.setStyleSheet("background-color: rgb(85, 170, 255);")
+        self.dividerFrameEnterPatient.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.dividerFrameEnterPatient.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.dividerFrameEnterPatient.setObjectName("dividerFrameEnterPatient")
+
+        self.searchPatientID = QtWidgets.QLineEdit(self.dividerFrameEnterPatient)
+        self.searchPatientID.setGeometry(QtCore.QRect(43, 8, 251, 34))
         self.searchPatientID.setStyleSheet("\n"
 "\n"
 "QLineEdit#searchPatientID{border-radius: 6px;\n"
@@ -560,45 +767,21 @@ class Ui_mainWindow(object):
         self.searchPatientID.setReadOnly(False)
         self.searchPatientID.setClearButtonEnabled(True)
         self.searchPatientID.setObjectName("searchPatientID")
-        self.dividerFrameEnterPatient = QtWidgets.QFrame(self.machineLearningCnnFrame)
-        self.dividerFrameEnterPatient.setGeometry(QtCore.QRect(10, 118, 341, 101))
-        self.dividerFrameEnterPatient.setStyleSheet("background-color: rgb(85, 170, 255);")
-        self.dividerFrameEnterPatient.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.dividerFrameEnterPatient.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.dividerFrameEnterPatient.setObjectName("dividerFrameEnterPatient")
+        self.negative_Checkbox = QtWidgets.QCheckBox(self.dividerFrameEnterPatient)
+        self.negative_Checkbox.setGeometry(QtCore.QRect(60, 45, 91, 24))
+        self.negative_Checkbox.setObjectName("negative_Checkbox")
+        self.positive_Checkbox = QtWidgets.QCheckBox(self.dividerFrameEnterPatient)
+        self.positive_Checkbox.setGeometry(QtCore.QRect(170, 45, 101, 24))
+        self.positive_Checkbox.setObjectName("positive_Checkbox")
+
+
+
+
         self.dividerFrameEnterPatient.raise_()
-        self.CNNimageDatasets.raise_()
-        self.trainDevTest.raise_()
-        self.scanBreastTissueImages.raise_()
+        self.ViewDatasets.raise_()
+        self.createDatasetButton.raise_()
+        self.applyCNNfilter_Button.raise_()
         self.searchPatientID.raise_()
-        self.predictionResult = QtWidgets.QPushButton(self.tab)
-        self.predictionResult.setGeometry(QtCore.QRect(40, 654, 251, 41))
-        self.predictionResult.setStyleSheet("\n"
-"QPushButton#predictionResult{\n"
-"    font: 700 9pt \"Segoe UI\";\n"
-"    \n"
-"border-color:rgb(16, 79, 127);\n"
-"background-color: rgb(149, 200, 255);\n"
-"border-radius:12px;\n"
-"border-style:outset;\n"
-"border-width:2px;\n"
-"\n"
-"border-color:rgb(16, 79, 127);\n"
-"\n"
-";}\n"
-"\n"
-"QPushButton:hover#predictionResult\n"
-"{\n"
-"border-width:2px;\n"
-"border-color: rgb(84, 204, 255);\n"
-"}\n"
-"\n"
-"")
-        icon9 = QtGui.QIcon()
-        icon9.addPixmap(QtGui.QPixmap("imagesicons/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
-        self.predictionResult.setIcon(icon9)
-        self.predictionResult.setIconSize(QtCore.QSize(30, 30))
-        self.predictionResult.setObjectName("predictionResult")
        
         self.EDAFrame.raise_()
         self.machineLearningCnnFrame.raise_()
@@ -690,16 +873,29 @@ class Ui_mainWindow(object):
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
 
-    
-        self.mpl_RightCanvasToPlot = MplWidget(self.plottingRightWidget)
-        self.mpl_LeftCanvasToPlot = MplWidget(self.plottingLeftWidget)
-        self.mpl_CanvasToPlot = MplWidget(self.BigScreenWidget)
-        self.mpl_CanvasToPlot3 = MplWidget2(self.BigScreenWidget)
-
+        # self.canvas_scrollarea =  QtWidgets.QScrollArea(self.tab1Behindwidget, widgetResizable=True)
+        # self.canvas_scrollarea.setWidget(self.BigScreenWidget)
+        self.mpl_RightCanvasToPlot = MplWidget(parent=self.plottingRightWidget,f1=10, f2=6, sp1=5, sp2=10)
+        self.mpl_LeftCanvasToPlot = MplWidget(parent=self.plottingLeftWidget, f1=10, f2=6, sp1=5, sp2=10)
+        self.mpl_CanvasToPlot = MplWidget(parent=self.BigScreenWidget, f1=10, f2=6, sp1=5, sp2=10)
+        self.mpl_CanvasToPlot3 = MplWidget(parent=self.BigScreenWidget, f1=13, f2=7, sp1=1, sp2=2)
+        self.mpl_CanvasToPlot4 = MplWidget(parent=self.BigScreenWidget, f1=15, f2=8, sp1=1, sp2=2)
+        self.mpl_CanvasToPlot5 = MplWidget(parent=self.BigScreenWidget, f1=15, f2=7, sp1=1, sp2=3)
+        self.mpl_CanvasToPlot3.setVisible(False)
+        self.mpl_CanvasToPlot4.setVisible(False)
 
         self.mpl_CanvasToPlot2 = QWebEngineView(self.BigScreenWidget)
 
+
+#=====================================================================
      #progress bar after button clicked
+        # self.round_ProgressBar = QtWidgets.roundProgressBar(mainWindow)
+        # self.round_ProgressBar.rpb_setMaximum(720) 
+        # self.round_ProgressBar.rpb_setValue(456)
+        # self.round_ProgressBar.setVisible(True)
+        # self.round_ProgressBar.setGeometry(800,467,411,61)
+        # self.round_ProgressBar.rpb_setBarStyle("Hybrid1")
+
         self.progressBar2 = QProgressBar(mainWindow)
         self.progressBar2.setGeometry(800,467,411,61)
         self.progressBar2.setFormat('Downloading. . .'+ '%p%' + ' Please..wait')
@@ -754,31 +950,47 @@ class Ui_mainWindow(object):
 class MplWidget(QtWidgets.QWidget):
     send_fig = QtCore.pyqtSignal(str)
   
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, f1=15, f2=8, sp1=1, sp2=2):
         
         super().__init__(parent)
-
-        self.figure = Figure(figsize=(10,6))
+        
+        # figsize=(10,5)
+        self.figure = Figure(figsize=(f1,f2))
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.toolbar = NavigationToolbar2QT(self.canvas, self)
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.toolbar)
         layout.addWidget(self.canvas)
-        self.ax = self.canvas.figure.subplots(5,10)
+        # subplots = (1,2)
+        self.ax = self.canvas.figure.subplots(sp1,sp2)
 
-#=============================================================================
-
-class MplWidget2(QtWidgets.QWidget):
-    send_fig = QtCore.pyqtSignal(str)
-  
-    def __init__(self, parent=None):
+#============================================
+class BreastCancerDataset(Dataset):      
+    def __init__(self, df, transform=None):
+        self.states = df
+        self.transform=transform
+      
+    def __len__(self):
+        return len(self.states)
         
-        super().__init__(parent)
-
-        self.figure = Figure(figsize=(20,27))
-        self.canvas = FigureCanvasQTAgg(self.figure)
-        self.toolbar = NavigationToolbar2QT(self.canvas, self)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
-        self.ax = self.canvas.figure.subplots(5,3)
+    def __getitem__(self, idx):
+        patient_id = self.states.patient_id.values[idx]
+        x_coord = self.states.x.values[idx]
+        y_coord = self.states.y.values[idx]
+        image_path = self.states.path.values[idx] 
+        image = Image.open(image_path)
+        image = image.convert('RGB')
+        
+        if self.transform:
+            image = self.transform(image)
+        
+        if "target" in self.states.columns.values:
+            target = np.int(self.states.target.values[idx])
+        else:
+            target = None
+            
+        return {"image": image,
+                "label": target,
+                "patient_id": patient_id,
+                "x": x_coord,
+                "y": y_coord}
