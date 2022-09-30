@@ -7,6 +7,9 @@ from DirectoryModel import DirProxyModel
 from PyQt5.QtWebEngineWidgets import QWebEngineView 
 from PySide2extn.RoundProgressBar import roundProgressBar
 import os,sys, pandas as pd, seaborn as sns, matplotlib.pyplot as plt
+from PIL import Image
+import numpy as np
+from torch.utils.data import Dataset, DataLoader
 # from matplotlib.axes import Subplot as plt
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -23,10 +26,6 @@ class Ui_mainWindow(object):
         self.df = pd.read_csv(self.pathfiles)
         # self.base_path = "breast-histopathology-images/IDC_regular_ps50_idx5/"
 
-        # train_dataset = BreastCancerDataset(train_df, transform=my_transform(key="train"))
-        # dev_dataset = BreastCancerDataset(dev_df, transform=my_transform(key="val"))
-        # test_dataset = BreastCancerDataset(test_df, transform=my_transform(key="val"))
-
 #======================================================================================
 
         mainWindow.setObjectName("mainWindow")
@@ -36,8 +35,8 @@ class Ui_mainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(mainWindow.sizePolicy().hasHeightForWidth())
         mainWindow.setSizePolicy(sizePolicy)
-        mainWindow.setMinimumSize(QtCore.QSize(1830, 980))
-        mainWindow.setMaximumSize(QtCore.QSize(5000, 5000))
+        mainWindow.setMinimumSize(QtCore.QSize(200, 200))
+        # mainWindow.setMaximumSize(QtCore.QSize(1840, 980))
         mainWindow.setSizeIncrement(QtCore.QSize(40, 40))
         mainWindow.setAcceptDrops(True)
         icon = QtGui.QIcon()
@@ -504,8 +503,92 @@ class Ui_mainWindow(object):
         self.ViewDatasets.setIcon(icon6)
         self.ViewDatasets.setIconSize(QtCore.QSize(22, 22))
         self.ViewDatasets.setObjectName("ViewDatasets")
+
+        self.train = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
+        self.train.setObjectName(u"train")
+        self.train.setGeometry(QtCore.QRect(5, 80, 39, 31))
+        self.train.setStyleSheet(u"\n"
+"\n"
+"QLineEdit#train{border-radius: 6px;\n"
+"	background-color: rgb(247, 255, 251);\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"border-color:rgb(16, 79, 127);\n"
+"	font: 400 7pt \"Segoe UI\";\n"
+";}\n"
+"\n"
+"\n"
+"QLineEdit:hover#train\n"
+"{\n"
+"border-width:2px;\n"
+"	border-color: rgb(84, 204, 255);\n"
+"}\n"
+"")
+        self.train.setFrame(False)
+        self.train.setAlignment(Qt.AlignCenter)
+        self.train.setReadOnly(False)
+        self.train.setClearButtonEnabled(False)
+        self.validationdata_ = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
+        self.validationdata_.setObjectName(u"validationdata_")
+        self.validationdata_.setGeometry(QtCore.QRect(46, 80, 39, 31))
+        self.validationdata_.setStyleSheet(u"\n"
+"\n"
+"QLineEdit#validationdata_{border-radius: 6px;\n"
+"	background-color: rgb(247, 255, 251);\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"border-color:rgb(16, 79, 127);\n"
+"	font: 400 7pt \"Segoe UI\";\n"
+";}\n"
+"\n"
+"\n"
+"QLineEdit:hover#validationdata_\n"
+"{\n"
+"border-width:2px;\n"
+"	border-color: rgb(84, 204, 255);\n"
+"}\n"
+"")
+        self.validationdata_.setFrame(False)
+        self.validationdata_.setAlignment(Qt.AlignCenter)
+        self.validationdata_.setReadOnly(False)
+        self.validationdata_.setClearButtonEnabled(False)
+        self.testdata_ = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
+        self.testdata_.setObjectName("testdata_")
+        self.testdata_.setGeometry(QtCore.QRect(87, 80, 39, 31))
+        self.testdata_.setStyleSheet("\n"
+"\n"
+"QLineEdit#testdata_{border-radius: 6px;\n"
+"	background-color: rgb(247, 255, 251);\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"border-color:rgb(16, 79, 127);\n"
+"	font: 400 7pt \"Segoe UI\";\n"
+";}\n"
+"\n"
+"\n"
+"QLineEdit:hover#testdata_\n"
+"{\n"
+"border-width:2px;\n"
+"	border-color: rgb(84, 204, 255);\n"
+"}\n"
+"")
+        self.testdata_.setFrame(False)
+        self.testdata_.setAlignment(Qt.AlignCenter)
+        self.testdata_.setReadOnly(False)
+        self.testdata_.setClearButtonEnabled(False)
+        self.datadistributionLabel = QtWidgets.QLabel(self.machineLearningCnnFrame)
+        self.datadistributionLabel.setObjectName(u"datadistributionLabel")
+        self.datadistributionLabel.setGeometry(QtCore.QRect(10, 111, 281, 21))
+        self.datadistributionLabel.setStyleSheet(u"font: 7pt \"Segoe UI\";\n"
+"\n"
+"	background-color: rgb(43, 86, 129);\n"
+"border-color: rgb(0, 170, 255);\n"
+"color: rgb(225, 225, 225);")
+
+
+
         self.createDatasetButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.createDatasetButton.setGeometry(QtCore.QRect(9, 82, 341, 31))
+        self.createDatasetButton.setGeometry(QtCore.QRect(129, 82, 221, 31))
         self.createDatasetButton.setStyleSheet("\n"
 "QPushButton#createDatasetButton{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -534,7 +617,7 @@ class Ui_mainWindow(object):
         self.createDatasetButton.setObjectName("createDatasetButton")
 
         self.applyCNNfilter_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.applyCNNfilter_Button.setGeometry(QtCore.QRect(8, 120, 341, 39))
+        self.applyCNNfilter_Button.setGeometry(QtCore.QRect(8, 134, 341, 39))
         self.applyCNNfilter_Button.setStyleSheet("\n"
 "QPushButton#applyCNNfilter_Button{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -563,7 +646,7 @@ class Ui_mainWindow(object):
         self.applyCNNfilter_Button.setObjectName("applyCNNfilter_Button")
 
         self.Search_OptimalCyclicalButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.Search_OptimalCyclicalButton.setGeometry(QtCore.QRect(8, 166, 341, 41))
+        self.Search_OptimalCyclicalButton.setGeometry(QtCore.QRect(8, 176, 341, 41))
         self.Search_OptimalCyclicalButton.setStyleSheet("\n"
 "QPushButton#Search_OptimalCyclicalButton{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -592,7 +675,7 @@ class Ui_mainWindow(object):
         self.Search_OptimalCyclicalButton.setObjectName("Search_OptimalCyclicalButton")
 
         self.idcprobabilityMap_button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.idcprobabilityMap_button.setGeometry(QtCore.QRect(8, 214, 341, 41))
+        self.idcprobabilityMap_button.setGeometry(QtCore.QRect(8, 220, 341, 41))
         self.idcprobabilityMap_button.setStyleSheet("\n"
 "QPushButton#idcprobabilityMap_button{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -620,7 +703,7 @@ class Ui_mainWindow(object):
         self.idcprobabilityMap_button.setIconSize(QtCore.QSize(30, 30))
         self.idcprobabilityMap_button.setObjectName("idcprobabilityMap_button")
         self.validationDataSet_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.validationDataSet_Button.setGeometry(QtCore.QRect(8, 261, 341, 35))
+        self.validationDataSet_Button.setGeometry(QtCore.QRect(8, 264, 341, 35))
         self.validationDataSet_Button.setStyleSheet("\n"
 "QPushButton#validationDataSet_Button{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -648,7 +731,7 @@ class Ui_mainWindow(object):
         self.validationDataSet_Button.setIconSize(QtCore.QSize(30, 30))
         self.validationDataSet_Button.setObjectName("validationDataSet_Button")
         self.validationConfusionMatrix_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.validationConfusionMatrix_Button.setGeometry(QtCore.QRect(8, 301, 341, 35))
+        self.validationConfusionMatrix_Button.setGeometry(QtCore.QRect(8, 302, 341, 35))
         self.validationConfusionMatrix_Button.setStyleSheet("\n"
 "QPushButton#validationConfusionMatrix_Button{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -676,7 +759,7 @@ class Ui_mainWindow(object):
         self.validationConfusionMatrix_Button.setIconSize(QtCore.QSize(30, 30))
         self.validationConfusionMatrix_Button.setObjectName("validationConfusionMatrix_Button")
         self.viewAllpatients_probabilityButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.viewAllpatients_probabilityButton.setGeometry(QtCore.QRect(8,340, 341, 34))
+        self.viewAllpatients_probabilityButton.setGeometry(QtCore.QRect(8,342, 341, 34))
         self.viewAllpatients_probabilityButton.setStyleSheet("\n"
 "QPushButton#viewAllpatients_probabilityButton{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -881,6 +964,9 @@ class Ui_mainWindow(object):
         self.mpl_CanvasToPlot3 = MplWidget(parent=self.BigScreenWidget, f1=13, f2=7, sp1=1, sp2=2)
         self.mpl_CanvasToPlot4 = MplWidget(parent=self.BigScreenWidget, f1=15, f2=8, sp1=1, sp2=2)
         self.mpl_CanvasToPlot5 = MplWidget(parent=self.BigScreenWidget, f1=15, f2=7, sp1=1, sp2=3)
+        self.mpl_CanvasToPlot6 = MplWidget(parent=self.BigScreenWidget, f1=20, f2=11, sp1=3, sp2=6)
+        self.mpl_CanvasToPlot7 = MplWidget(parent=self.BigScreenWidget, f1=20, f2=5, sp1=1, sp2=2)
+       
         self.mpl_CanvasToPlot3.setVisible(False)
         self.mpl_CanvasToPlot4.setVisible(False)
 
@@ -965,32 +1051,3 @@ class MplWidget(QtWidgets.QWidget):
         self.ax = self.canvas.figure.subplots(sp1,sp2)
 
 #============================================
-class BreastCancerDataset(Dataset):      
-    def __init__(self, df, transform=None):
-        self.states = df
-        self.transform=transform
-      
-    def __len__(self):
-        return len(self.states)
-        
-    def __getitem__(self, idx):
-        patient_id = self.states.patient_id.values[idx]
-        x_coord = self.states.x.values[idx]
-        y_coord = self.states.y.values[idx]
-        image_path = self.states.path.values[idx] 
-        image = Image.open(image_path)
-        image = image.convert('RGB')
-        
-        if self.transform:
-            image = self.transform(image)
-        
-        if "target" in self.states.columns.values:
-            target = np.int(self.states.target.values[idx])
-        else:
-            target = None
-            
-        return {"image": image,
-                "label": target,
-                "patient_id": patient_id,
-                "x": x_coord,
-                "y": y_coord}

@@ -36,12 +36,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.axes import Subplot as plt
 
+import math
 import seaborn as sns
 sns.set()
-from PIL import Image
+# from PIL import Image
+import PIL.Image
 import torch
 import torch.nn as nn
+
+#torch.optim is a package implementing various optimization algorithms
 import torch.optim as optim
+
 # from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR, CyclicLrR
 import torchvision
 from torchvision import datasets, models, transforms
@@ -62,9 +67,65 @@ from tqdm import tqdm_notebook as tqdm
 from plotly.graph_objs import *
 import plotly.express as px
 
+run_training = False
+retrain = False
+find_learning_rate = False
+
+
+#================================================================================
+class BreastCancerDataset(Dataset):      
+    def __init__(self, df, transform=None):
+        self.states = df
+        self.transform=transform
+      
+    def __len__(self):
+        return len(self.states)
+        
+    def __getitem__(self, idx):
+        patient_id = self.states.patient_id.values[idx]
+        x_coord = self.states.x.values[idx]
+        y_coord = self.states.y.values[idx]
+        image_path = self.states.path.values[idx] 
+        image = Image.open(image_path)
+        image = image.convert('RGB')
+        
+        if self.transform:
+            image = self.transform(image)
+        
+        if "target" in self.states.columns.values:
+            target = np.int(self.states.target.values[idx])
+        else:
+            target = None
+            
+        return {"image": image,
+                "label": target,
+                "patient_id": patient_id,
+                "x": x_coord,
+                "y": y_coord}
 
 
 
+#================================================================================
+
+class MplWidget(QtWidgets.QWidget):
+    send_fig = QtCore.pyqtSignal(str)
+  
+    def __init__(self, parent=None, f1=15, f2=8, sp1=1, sp2=2):
+        
+        super().__init__(parent)
+        
+        # figsize=(10,5)
+        self.figure = Figure(figsize=(f1,f2))
+        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.toolbar = NavigationToolbar2QT(self.canvas, self)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        # subplots = (1,2)
+        self.ax = self.canvas.figure.subplots(sp1,sp2)
+
+
+#==============================================================================
 class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     # send_fig = QtCore.pyqtSignal(str)
 
@@ -75,24 +136,371 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.base_path= "breast-histopathology-images/IDC_regular_ps50_idx5/"
         self.folders_list = listdir(self.base_path)
 
+#*******************************************************************************
+#Target distributions 
+        patients = self.df.patient_id.unique()
+        data=self.df
 
+        train_ids, sub_test_ids = train_test_split(patients,test_size=0.3,random_state=0)
+        test_ids, dev_ids = train_test_split(sub_test_ids, test_size=0.5, random_state=0)
+
+        train_df = data.loc[data.patient_id.isin(train_ids),:].copy()
+        test_df = data.loc[data.patient_id.isin(test_ids),:].copy()
+        dev_df = data.loc[data.patient_id.isin(dev_ids),:].copy()
+
+        self.train_df = self.extract_coords(train_df)
+        self.test_df = self.extract_coords(test_df)
+        self.dev_df = self.extract_coords(dev_df)
+
+#*********************************************************************************************
+ #to create a dataset that loads an image patch of a patient, converts it to RGB, 
+ # performs the augmentation if it's desired and returns the image, the target, the patient id and the image coordinates.      
+        self.train_dataset = BreastCancerDataset(self.train_df, transform=self.my_transform(key="train"))
+        self.dev_dataset = BreastCancerDataset(self.dev_df, transform=self.my_transform(key="val"))
+        self.test_dataset = BreastCancerDataset(self.test_df, transform=self.my_transform(key="val"))
+
+        image_datasets = {"train": self.train_dataset, "dev": self.dev_dataset, "test": self.test_dataset}
+        self.dataset_sizes = {x: len(image_datasets[x]) for x in ["train", "dev", "test"]}
 
 #==============================================================================
-# Machine Learning Modeling   
+# Machine Learning Modeling  **************************************************
 #==============================================================================
 #Setting up Machine Learning workflow
         BATCH_SIZE = 32
-        NUM_CLASSES = 2
-        OUTPUT_PATH = ""
-        MODEL_PATH = "breastcancermodel/"
-        LOSSES_PATH = "breastcancermodel/"
+        self.NUM_CLASSES = 2
+        self.OUTPUT_PATH = ""
+        self.MODEL_PATH = "breastcancermodel/"
+        self.LOSSES_PATH = "breastcancermodel/"
         torch.manual_seed(0)
         np.random.seed(0)
 
-#==================================================================
+#******************************************************************************************
+# Creating pytorch dataloaders
+        self.train_dataloader = DataLoader(self.train_dataset, batch_size=BATCH_SIZE, shuffle=True, drop_last=True)
+        self.dev_dataloader = DataLoader(self.dev_dataset, batch_size=BATCH_SIZE, shuffle=False, drop_last=True)
+        self.test_dataloader = DataLoader(self.test_dataset, batch_size=BATCH_SIZE, shuffle=False, drop_last=False)
+        self.dataloaders = {"train": self.train_dataloader, "dev": self.dev_dataloader, "test": self.test_dataloader}
+
+#==========================================================================
+ #Defining the CNN model structure 
+ #*******************************************************************
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print(self.device)
+
+        self.model = self.SettingCNNFilter_Function()
+
+        weights = compute_class_weight(y=self.train_df.target.values, class_weight="balanced", classes=self.train_df.target.unique())    
+        self.class_weights = torch.FloatTensor(weights)
+        self.criterion = nn.CrossEntropyLoss(weight=self.class_weights)
+
+    
+    def init_weights(self,m):
+        if type(m) == nn.Linear:
+                torch.nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.01)
+#----------------------------------------------------------------------------------
+#  first layers of a pretrained CNN extract basic features like edges for example 
+#  and only last layers contain very problem specific features.
+#-------------------------------------------------------------------
+#Goal is to start simple CNN layer by using a small network like resnet18:
+
+# ResNet-18 (Residual Networks) is a convolutional neural network that is 18 layers deep.
+#  You can load a pretrained version of the network trained on more than a
+#  million images from the ImageNet database
+#=================================================================================
+    def SettingCNNFilter_Function(self):
+          print("setting CNNFilter...")
+
+          model = torchvision.models.resnet18(pretrained=False)
+          if run_training:
+                model.load_state_dict(torch.load("../input/pretrained-pytorch-models/resnet18-5c106cde.pth"))
+          num_features = model.fc.in_features
+          print(num_features)
+
+          model.fc = nn.Sequential(
+                nn.Linear(num_features, 512),
+                nn.ReLU(),
+                nn.BatchNorm1d(512),
+                nn.Dropout(0.5),
+                
+                nn.Linear(512, 256),
+                nn.ReLU(),
+                nn.BatchNorm1d(256),
+                nn.Dropout(0.5),
+                
+                nn.Linear(256, self.NUM_CLASSES))
+
+          
+          model.apply(self.init_weights)
+          model = model.to(self.device)
+
+          return model
+
+        
+    #Setting up the loss function--------------------------
+    #using the cross entropy loss with K=2 output neurons or 2 classes that can be hot (1) or cold (0) with  ∑𝑘𝑦𝑛𝑘=1 :
+    #to weight the positive and negative classes such that we are able to deal with the class imbalance.
+
+          if self.device.type=="cuda":
+             class_weights = self.class_weights.cuda()
+          print("You can see that class 1 (positive cancer) has a higher weight." + class_weights)
+          
+    #Selecting an evaluation metric--------------------------------------------------
+    #--------------------------------------------------------------------------------
+    # 𝑓1=  2 / ((1/𝑟𝑒𝑐𝑎𝑙𝑙)+(1/𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛))
+    # f1-score is a measure of a model's accuracy on a dataset.
+    
+    #Precision and recall
+    # 𝑟𝑒𝑐𝑎𝑙𝑙= (𝑇𝑟𝑢𝑒𝑃𝑜𝑠𝑖𝑡𝑖𝑣𝑒𝑠 / (𝑇𝑟𝑢𝑒𝑃𝑜𝑠𝑖𝑡𝑖𝑣𝑒𝑠 + 𝐹𝑎𝑙𝑠𝑒𝑃𝑜𝑠𝑖𝑡𝑖𝑣𝑒𝑠)
+    # 𝑝𝑟𝑒𝑐𝑖𝑠𝑖𝑜𝑛=  (𝑇𝑟𝑢𝑒𝑃𝑜𝑠𝑖𝑡𝑖𝑣𝑒𝑠  /  (𝑇𝑟𝑢𝑒𝑃𝑜𝑠𝑖𝑡𝑖𝑣𝑒𝑠 + 𝐹𝑎𝑙𝑠𝑒𝑁𝑒𝑔𝑎𝑡𝑖𝑣𝑒𝑠)
+     
+
+    def f1_score(preds, targets):
+        
+        tp = (preds*targets).sum().to(torch.float32)
+        fp = ((1-targets)*preds).sum().to(torch.float32)
+        fn = (targets*(1-preds)).sum().to(torch.float32)
+        
+        epsilon = 1e-7
+        precision = tp / (tp + fp + epsilon)
+        recall = tp / (tp + fn + epsilon)
+        
+        f1_score = 2 * precision * recall/(precision + recall + epsilon)
+        return f1_score
+
+#==============================================================
+#Building the training loop 
+#---------------------------------------------------------------
+    def train_loop(self, model, criterion, optimizer, lr_find=False, scheduler=None, num_epochs = 3, lam=0.0):
+        since = time.time()
+        if lr_find:
+            phases = ["train"]
+        else:
+            phases = ["train", "dev", "test"]
+        
+        best_model_wts = copy.deepcopy(model.state_dict())
+        best_acc = 0.0
+        
+        loss_dict = {"train": [], "dev": [], "test": []}
+        lam_tensor = torch.tensor(lam, device=self.device)
+        
+        running_loss_dict = {"train": [], "dev": [], "test": []}
+        
+        lr_find_loss = []
+        lr_find_lr = []
+        smoothing = 0.2
+        
+        for epoch in range(num_epochs):
+            print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+            print('-' * 10)
+            
+            for phase in phases:
+                if phase == "train":
+                    model.train()
+                else:
+                    model.eval()
+
+                running_loss = 0.0
+                running_corrects = 0
+                
+                tk0 = tqdm(self.dataloaders[phase], total=int(len(self.dataloaders[phase])))
+
+                counter = 0
+                for bi, d in enumerate(tk0):
+                    inputs = d["image"]
+                    labels = d["label"]
+                    inputs = inputs.to(self.device, dtype=torch.float)
+                    labels = labels.to(self.device, dtype=torch.long)
+                    
+                    # zero the parameter gradients
+                    optimizer.zero_grad()
+                    
+                    # forward
+                    # track history if only in train
+                    
+                    with torch.set_grad_enabled(phase == 'train'):
+                        outputs = model(inputs)
+                        _, preds = torch.max(outputs, 1)
+                        loss = criterion(outputs, labels)
+                    
+                        # backward + optimize only if in training phase
+                        if phase == 'train':
+                            loss.backward()
+                            
+                            #l2_reg = torch.tensor(0., device=device)
+                            #for param in model.parameters():
+                                #l2_reg = lam_tensor * torch.norm(param)
+                            
+                            #loss += l2_reg
+                
+                            optimizer.step()
+                            # cyclical lr schedule is invoked after each batch
+                            if scheduler is not None:
+                                scheduler.step() 
+                                if lr_find:
+                                    lr_step = optimizer.state_dict()["param_groups"][0]["lr"]
+                                    lr_find_lr.append(lr_step)
+                                    if counter==0:
+                                        lr_find_loss.append(loss.item())
+                                    else:
+                                        smoothed_loss = smoothing  * loss.item() + (1 - smoothing) * lr_find_loss[-1]
+                                        lr_find_loss.append(smoothed_loss)
+                                
+                    # statistics
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == labels.data)                      
+        
+                    counter += 1
+                    
+                    
+                    tk0.set_postfix({'loss': running_loss / (counter * self.dataloaders[phase].batch_size),
+                                    'accuracy': running_corrects.double() / (counter * self.dataloaders[phase].batch_size)})
+                    running_loss_dict[phase].append(running_loss / (counter * self.dataloaders[phase].batch_size))
+                    
+                epoch_loss = running_loss / self.dataset_sizes[phase]
+                loss_dict[phase].append(epoch_loss)
+                epoch_acc = running_corrects.double() / self.dataset_sizes[phase]
+                print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+                    phase, epoch_loss, epoch_acc))
+                
+                # deep copy the model
+                if phase == 'dev' and epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    best_model_wts = copy.deepcopy(model.state_dict())
+            print()
+            
+        time_elapsed = time.time() - since
+        print('Training complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+        print('Best val Acc: {:4f}'.format(best_acc))              
+        
+        # load best model weights
+        model.load_state_dict(best_model_wts)
+        results = {"model": model,
+                "loss_dict": loss_dict,
+                "running_loss_dict": running_loss_dict,
+                "lr_find": {"lr": lr_find_lr, "loss": lr_find_loss}}
+        return results
+
+#=========================================================================
+    def applyCNNFilter_Function(self):
+        print("applying CNNFilter")
+
+
+
+
+#=================================================================================
+#Searching for an optimal cyclical learning rate 
+
+    def searchingOptimalCyclical_lr_Function(self):
+        print("Searching for an optimal cyclical learning rate ")
+
+        #setting up value for model's learning rate(start-end)
+        start_lr = 1e-6
+        end_lr = 0.1
+
+        if find_learning_rate:
+            lr_find_epochs=1
+            optimizer = optim.SGD(self.model.fc.parameters(), start_lr)
+            scheduler = self.get_lr_search_scheduler(optimizer, start_lr, end_lr, lr_find_epochs*len(self.train_dataloader))
+            results = self.train_loop(self.model, self.criterion, optimizer, lr_find=True, scheduler=scheduler, num_epochs=lr_find_epochs)
+            lr_find_lr, lr_find_loss = results["lr_find"]["lr"], results["lr_find"]["loss"]
+            
+            find_lr_df = pd.DataFrame(lr_find_loss, columns=["smoothed loss"])
+            find_lr_df.loc[:, "lr"] = lr_find_lr
+            find_lr_df.to_csv("learning_rate_search.csv", index=False)
+        else:
+            find_lr_df = pd.read_csv(self.MODEL_PATH + "learning_rate_search.csv")
+        
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot2.setVisible(True)
+    
+        # #=====================================================
+        # #making subplots
+        fig = make_subplots(rows=1, cols=3,
+                specs=[[{"secondary_y": True}, {"secondary_y": True},
+                {"secondary_y": True}]
+                        ])
+        
+        # #=====================================================
+        # #1st column axes
+        fig.add_trace(
+            go.Line(x=find_lr_df.lr.values, name="Train data", showlegend=False),
+            row=1, col=1, secondary_y=False,
+        )
+            
+        # #=====================================================
+        # #2nd column axes
+
+        fig.add_trace(
+        go.Line(x=find_lr_df["smoothed loss"].values, name="Dev / Validation data", showlegend=False),
+            row=1, col=2, secondary_y=False,
+        )
+        
+        
+        # #=====================================================
+        # #3rd column axes
+
+        fig.add_trace(          
+        go.Line(x=find_lr_df.lr.values, y=find_lr_df["smoothed loss"].values, name="Test data",showlegend=False ),
+            row=2, col=1, secondary_y=False,
+        )
+    
+    # to color histogram axes1
+        # fig.data[0].marker.color = ('rgb(243,131,104)','rgb(185,60,13)')
+        # fig.data[1].marker.color = ('rgb(172,209,233)','rgb(55,157,222)')
+        # fig.data[2].marker.color = ('rgb(139,205,194)','rgb(104,189,175)')
+
+
+        fig.update_xaxes(row=1, col=1,title_text="Steps")
+        fig.update_xaxes(row=1, col=2,title_text= "Steps")
+        fig.update_xaxes(row=1, col=3,title_text="Learning rate")
+
+        fig.update_yaxes(row=1, col=1,title_text="Learning rate")
+        fig.update_yaxes(row=1, col=2,title_text="Loss")
+        fig.update_yaxes(row=2, col=1,title_text="Smoothed Loss")
+
+        fig.update_layout(title=' ', bargap=0.03,title_font_size= 18, title_font_color='rgb(0,0,0)')
+
+        self.mpl_CanvasToPlot2.setHtml(fig.to_html(include_plotlyjs='cdn'))
+        self.mpl_CanvasToPlot2.resize(1390,750)
+
+
+
+#---------------------------------------------------------------------------
+    def get_lr_search_scheduler(self,optimizer, min_lr, max_lr, max_iterations):
+        # max_iterations should be the number of steps within num_epochs_*epoch_iterations
+        # this way the learning rate increases linearily within the period num_epochs*epoch_iterations 
+        scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=optimizer, 
+                                                base_lr=min_lr,
+                                                max_lr=max_lr,
+                                                step_size_up=max_iterations,
+                                                step_size_down=max_iterations,
+                                                mode="triangular")
+    
+        return scheduler
+
+    def get_scheduler(self,optimiser, min_lr, max_lr, stepsize):
+        # suggested_stepsize = 2*num_iterations_within_epoch
+        stepsize_up = np.int(stepsize/2)
+        scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer=optimiser,
+                                                base_lr=min_lr,
+                                                max_lr=max_lr,
+                                                step_size_up=stepsize_up,
+                                                step_size_down=stepsize_up,
+                                                mode="triangular")
+        return scheduler
+
+#===============================================================================
 #validation strategy  selecting 30 % of the 
 # patients as test data and the remaining 70 % 
 # for training and developing. 
+    def setTargetDatadistribution_Function(self):
+
+        
+        self.targetdistributions_Function(traindata=70, validationdata=15, testdata=15)
+
+    #def targetdistributions_Function(self,traindata=70, validationdata=15, testdata=15):
     def targetdistributions_Function(self):
             self.hideWidgets()
             self.BigScreenWidget.setVisible(True)
@@ -101,6 +509,11 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 
             patients = self.df.patient_id.unique()
             data=self.df
+
+            # traindata , sub_test_ids = train_test_split(patients,(test_size=30)/100),random_state=0)
+            # test_ids = train_test_split(sub_test_ids, (test_size=30)/100),random_state=0)
+            #  dev_ids = train_test_split(sub_test_ids,(test_size=30)/100),random_state=0)
+
 
             train_ids, sub_test_ids = train_test_split(patients,test_size=0.3,random_state=0)
             test_ids, dev_ids = train_test_split(sub_test_ids, test_size=0.5, random_state=0)
@@ -113,17 +526,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             test_df = data.loc[data.patient_id.isin(test_ids),:].copy()
             dev_df = data.loc[data.patient_id.isin(dev_ids),:].copy()
 
-            train_df = self.extract_coords(train_df)
-            test_df = self.extract_coords(test_df)
-            dev_df = self.extract_coords(dev_df)
-
-            # sns.countplot(train_df.target, ax=self.mpl_CanvasToPlot5.ax[0], palette="Reds")
-            # self.mpl_CanvasToPlot5.ax[0].set_title("Train data")
-            # sns.countplot(dev_df.target, ax=self.mpl_CanvasToPlot5.ax[1], palette="Blues")
-            # self.mpl_CanvasToPlot5.ax[1].set_title("Dev / Validation data")
-            # sns.countplot(test_df.target, ax=self.mpl_CanvasToPlot5.ax[2], palette="Greens");
-            # self.mpl_CanvasToPlot5.ax[2].set_title("Test data");
-            # self.mpl_CanvasToPlot5.canvas.draw_idle()  
+            self.train_df = self.extract_coords(train_df)
+            self.test_df = self.extract_coords(test_df)
+            self.dev_df = self.extract_coords(dev_df)
 
             self.BigScreenWidget.setVisible(True)
             self.mpl_CanvasToPlot2.setVisible(True)
@@ -182,7 +587,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             # str(len(train_ids)/patients.shape[0]*100), str(len(dev_ids)/patients.shape[0]*100), str(len(test_ids)/patients.shape[0]*100)
             self.middleLabel.setText("  Notice: Test data has more cancer patches compared to dev or validation data sets. \n  Non-cancerous patches = 0 (Left), Cancerous patches = 1 (Right) \n  Distributing 70 data for train, 15 for dev/validation and 15 for test ")
             self.middleLabel.setGeometry(432,852,1351,79)
-#==============================================================
+#============================================================================================
+
 
     def my_transform(self,key="train", plot=False):
             train_sequence = [transforms.Resize((50,50)),
@@ -200,9 +606,33 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             data_transforms = {'train': transforms.Compose(train_sequence),'val': transforms.Compose(val_sequence)}
             return data_transforms[key]  
 
+#=====================================================================================
+    def createDatasets (self):
+            print("creating datasets")
+            self.hideWidgets()
+            self.BigScreenWidget.setVisible(True)
 
-#====================================================
-#=================Functions=========================   
+            train_transform = self.my_transform(key="train", plot=True)
+            val_transform = self.my_transform(key="val", plot=True)
+        
+            for m in range(6):
+                filepath = self.train_df.path.values[m]
+                image = PIL.Image.open(filepath)
+                self.mpl_CanvasToPlot6.ax[0,m].imshow(image)
+                transformed_img = train_transform(image)
+                self.mpl_CanvasToPlot6.ax[1,m].imshow(transformed_img)
+                self.mpl_CanvasToPlot6.ax[2,m].imshow(val_transform(image))
+                self.mpl_CanvasToPlot6.ax[0,m].grid(False)
+                self.mpl_CanvasToPlot6.ax[1,m].grid(False)
+                self.mpl_CanvasToPlot6.ax[2,m].grid(False)
+                self.mpl_CanvasToPlot6.ax[0,m].set_title(str(self.train_df.patient_id.values[m]) + "\n target: " + str(self.train_df.target.values[m]))
+                self.mpl_CanvasToPlot6.ax[1,m].set_title("Preprocessing for train")
+                self.mpl_CanvasToPlot6.ax[2,m].set_title("Preprocessing for val")
+    
+
+
+#====================================================================================================
+#=================Functions==========================================================================   
 # 
     def progressbarAnimation(self,pB): 
         #setting for loop to set value of progress bar
@@ -692,7 +1122,11 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.negative_Checkbox.setText(_translate("mainWindow", "negative"))
         self.positive_Checkbox.setText(_translate("mainWindow", "positive"))
 
-
+        
+        self.datadistributionLabel.setText(_translate("mainWindow", "Set data distribution ( with total sum of 100%)"))
+        self.train.setPlaceholderText(_translate("mainWindow", "train"))
+        self.validationdata_.setPlaceholderText(_translate("mainWindow", "dev"))
+        self.testdata_.setPlaceholderText(_translate("mainWindow", "test"))
         self.searchPatientID.setPlaceholderText(_translate("mainWindow", "   Search Patient ID..."))
         self.predictionResult.setText(_translate("mainWindow", "Export Prediction Result"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("mainWindow", "Table"))
@@ -710,6 +1144,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.visualizeBinary.clicked.connect(self.visualizeBreastTissueSliceBinary_Function)
         self.visualizeBreastTissue.clicked.connect(self.visualizeBreastTissueImages_Function)
         self.ViewDatasets.clicked.connect(self.targetdistributions_Function)
+        self.createDatasetButton.clicked.connect(self.createDatasets)
+        self.Search_OptimalCyclicalButton.clicked.connect(self.searchingOptimalCyclical_lr_Function)
+        
 
 
 if __name__ == "__main__":
@@ -720,3 +1157,26 @@ if __name__ == "__main__":
     ui.setupUi(mainWindow)
     mainWindow.show()
     sys.exit(app.exec_())
+
+
+#=============================================================================
+
+class MplWidget(QtWidgets.QWidget):
+    send_fig = QtCore.pyqtSignal(str)
+  
+    def __init__(self, parent=None, f1=15, f2=8, sp1=1, sp2=2):
+        
+        super().__init__(parent)
+        
+        # figsize=(10,5)
+        self.figure = Figure(figsize=(f1,f2))
+        self.canvas = FigureCanvasQTAgg(self.figure)
+        self.toolbar = NavigationToolbar2QT(self.canvas, self)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.canvas)
+        # subplots = (1,2)
+        self.ax = self.canvas.figure.subplots(sp1,sp2)
+
+
+#============================================
