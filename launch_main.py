@@ -26,6 +26,7 @@ from matplotlib.figure import Figure
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from plotly.figure_factory import create_distplot
+from sklearn.metrics import classification_report, balanced_accuracy_score
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -392,8 +393,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #=================================================================================
 #Searching for an optimal cyclical learning rate 
 
-    def searchingOptimalCyclical_lr_Function(self):
-        print("Searching for an optimal cyclical learning rate ")
+    def searchingOptimalCyclical_HIGH_lr_Function(self):
+        self.hideWidgets()
+        print("Searching for an optimal cyclical learning rate, \nusing  start_lr = 1e-6\nend_lr = 0.1 ")
 
         #setting up value for model's learning rate(start-end)
         start_lr = 1e-6
@@ -417,15 +419,14 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     
         # #=====================================================
         # #making subplots
-        fig = make_subplots(rows=1, cols=3,
-                specs=[[{"secondary_y": True}, {"secondary_y": True},
-                {"secondary_y": True}]
-                        ])
+        fig = make_subplots(rows=2, cols=2,   vertical_spacing = 0.10,   horizontal_spacing = 0.10,subplot_titles=('<b>How the learning rate increases during search','<b>How the training loss evolves during search','<b>Searching for the optimal learning rate'),
+             specs=[[{"secondary_y": True}, {"secondary_y": True}],
+                           [{"secondary_y": True}, {"secondary_y": True}]])
         
         # #=====================================================
         # #1st column axes
         fig.add_trace(
-            go.Line(x=find_lr_df.lr.values, name="Train data", showlegend=False),
+            go.Line(y=find_lr_df.lr.values,name='',  showlegend=False),
             row=1, col=1, secondary_y=False,
         )
             
@@ -433,7 +434,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         # #2nd column axes
 
         fig.add_trace(
-        go.Line(x=find_lr_df["smoothed loss"].values, name="Dev / Validation data", showlegend=False),
+        go.Line(y=find_lr_df["smoothed loss"].values,name='', showlegend=False),
             row=1, col=2, secondary_y=False,
         )
         
@@ -442,28 +443,26 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         # #3rd column axes
 
         fig.add_trace(          
-        go.Line(x=find_lr_df.lr.values, y=find_lr_df["smoothed loss"].values, name="Test data",showlegend=False ),
+        go.Line(x=find_lr_df.lr.values, y=find_lr_df["smoothed loss"].values,name='', showlegend=False ),
             row=2, col=1, secondary_y=False,
         )
-    
-    # to color histogram axes1
-        # fig.data[0].marker.color = ('rgb(243,131,104)','rgb(185,60,13)')
-        # fig.data[1].marker.color = ('rgb(172,209,233)','rgb(55,157,222)')
-        # fig.data[2].marker.color = ('rgb(139,205,194)','rgb(104,189,175)')
 
+        fig.update_xaxes(row=2, col=1,type="log",range=[-4,-1])
 
         fig.update_xaxes(row=1, col=1,title_text="Steps")
         fig.update_xaxes(row=1, col=2,title_text= "Steps")
-        fig.update_xaxes(row=1, col=3,title_text="Learning rate")
+        fig.update_xaxes(row=2, col=1,title_text="Learning  rate")
 
-        fig.update_yaxes(row=1, col=1,title_text="Learning rate")
+        fig.update_yaxes(row=1, col=1,title_text="Learning  rate")
         fig.update_yaxes(row=1, col=2,title_text="Loss")
-        fig.update_yaxes(row=2, col=1,title_text="Smoothed Loss")
+        fig.update_yaxes(row=2, col=1,title_text="Smoothed  Loss")
 
-        fig.update_layout(title=' ', bargap=0.03,title_font_size= 18, title_font_color='rgb(0,0,0)')
+
+        fig.update_annotations(font=dict(family="Helvetica", size=20))
+        fig.update_layout( width=1400, height=850)
 
         self.mpl_CanvasToPlot2.setHtml(fig.to_html(include_plotlyjs='cdn'))
-        self.mpl_CanvasToPlot2.resize(1390,750)
+        self.mpl_CanvasToPlot2.resize(1390,850)
 
 
 
@@ -490,6 +489,270 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
                                                 step_size_down=stepsize_up,
                                                 mode="triangular")
         return scheduler
+ 
+#----------------------------------------------------------------
+    def searchingOptimalCyclical_LOW_lr_Function(self):
+        self.hideWidgets()
+        #leaning towards the minimum side of learning rate so it wont shoot pass the minimum value
+        #for more accurate train model
+        print("Searching for an optimal cyclical learning rate, using  start_lr = 1e-6\nend_lr = 0.006")
+        start_lr = 1e-6
+        end_lr = 0.006
+        model = self.SettingCNNFilter_Function()
+         
+        if run_training:
+            NUM_EPOCHS = 30
+            optimizer = optim.SGD(model.fc.parameters(), lr=0.01)
+            scheduler = self.get_scheduler(optimizer, start_lr, end_lr, 2*NUM_EPOCHS)
+            results = self.train_loop(model, self.criterion, optimizer, scheduler=scheduler, num_epochs = NUM_EPOCHS)
+            model, loss_dict, running_loss_dict = results["model"], results["loss_dict"], results["running_loss_dict"]
+            
+            if self.device == "cpu":
+                OUTPUT_PATH += ".pth"
+            else:
+                OUTPUT_PATH += "_cuda.pth"
+                
+            torch.save(model.state_dict(), OUTPUT_PATH)
+            
+            losses_df = pd.DataFrame(loss_dict["train"],columns=["train"])
+            losses_df.loc[:, "dev"] = loss_dict["dev"]
+            losses_df.loc[:, "test"] = loss_dict["test"]
+            losses_df.to_csv("losses_breastcancer.csv", index=False)
+            
+            running_losses_df = pd.DataFrame(running_loss_dict["train"], columns=["train"])
+            running_losses_df.loc[0:len(running_loss_dict["dev"])-1, "dev"] = running_loss_dict["dev"]
+            running_losses_df.loc[0:len(running_loss_dict["test"])-1, "test"] = running_loss_dict["test"]
+            running_losses_df.to_csv("running_losses_breastcancer.csv", index=False)
+        else:
+            if self.device == "cpu":
+                load_path = self.MODEL_PATH + ".pth"
+            else:
+                load_path = self.MODEL_PATH + "_cuda.pth"
+            model.load_state_dict(torch.load(load_path, map_location='cpu'))
+            model.eval()
+            
+            losses_df = pd.read_csv(self.LOSSES_PATH + "losses_breastcancer.csv")
+            running_losses_df = pd.read_csv(self.LOSSES_PATH + "running_losses_breastcancer.csv")
+
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot2.setVisible(True)
+
+
+        fig = px.scatter()
+
+        fig.update_xaxes(title_text="( Epoch ) - indicates the number of passes of the entire training dataset the machine learning algorithm has completed.")
+        fig.update_yaxes(title_text="Weighted  x-entropy  (change within)")
+
+        fig.update_layout(title_x=0.35, title='   Loss change over epoch ',title_font_size= 18, title_font_color='rgb(0,0,0)')
+ 
+        fig.add_trace(
+            go.Line(y=losses_df["train"],name='train', showlegend=True)
+        )
+            
+        fig.add_trace(
+            go.Line(y=losses_df["dev"],name='validation',  showlegend=True)
+        )
+        
+        fig.add_trace(
+            go.Line(y=losses_df["test"],name='test',  showlegend=True)
+        )
+
+
+        self.mpl_CanvasToPlot2.setHtml(fig.to_html(include_plotlyjs='cdn'))
+        self.mpl_CanvasToPlot2.resize(1390,750)
+#===============================================================================
+    def lossConvergence_Function(self):
+        print("loss convergence")
+        self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
+        self.labelWithPhoto.setVisible(False)
+
+        start_lr = 1e-6
+        end_lr = 0.006
+        model = self.SettingCNNFilter_Function()
+         
+        if run_training:
+            NUM_EPOCHS = 30
+            optimizer = optim.SGD(model.fc.parameters(), lr=0.01)
+            scheduler = self.get_scheduler(optimizer, start_lr, end_lr, 2*NUM_EPOCHS)
+            results = self.train_loop(model, self.criterion, optimizer, scheduler=scheduler, num_epochs = NUM_EPOCHS)
+            model, loss_dict, running_loss_dict = results["model"], results["loss_dict"], results["running_loss_dict"]
+            
+            if self.device == "cpu":
+                OUTPUT_PATH += ".pth"
+            else:
+                OUTPUT_PATH += "_cuda.pth"
+                
+            torch.save(model.state_dict(), OUTPUT_PATH)
+            
+            losses_df = pd.DataFrame(loss_dict["train"],columns=["train"])
+            losses_df.loc[:, "dev"] = loss_dict["dev"]
+            losses_df.loc[:, "test"] = loss_dict["test"]
+            losses_df.to_csv("losses_breastcancer.csv", index=False)
+            
+            running_losses_df = pd.DataFrame(running_loss_dict["train"], columns=["train"])
+            running_losses_df.loc[0:len(running_loss_dict["dev"])-1, "dev"] = running_loss_dict["dev"]
+            running_losses_df.loc[0:len(running_loss_dict["test"])-1, "test"] = running_loss_dict["test"]
+            running_losses_df.to_csv("running_losses_breastcancer.csv", index=False)
+        else:
+            if self.device == "cpu":
+                load_path = self.MODEL_PATH + ".pth"
+            else:
+                load_path = self.MODEL_PATH + "_cuda.pth"
+            model.load_state_dict(torch.load(load_path, map_location='cpu'))
+            model.eval()
+            
+            losses_df = pd.read_csv(self.LOSSES_PATH + "losses_breastcancer.csv")
+            running_losses_df = pd.read_csv(self.LOSSES_PATH + "running_losses_breastcancer.csv")
+       
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot8.setVisible(True)
+    
+
+        self.mpl_CanvasToPlot8.ax[0].plot(running_losses_df["train"], '-o', label="train")
+        self.mpl_CanvasToPlot8.ax[0].set_xlabel("Steps")
+        self.mpl_CanvasToPlot8.ax[0].set_ylabel("Weighted x-entropy")
+        self.mpl_CanvasToPlot8.ax[0].set_title("Loss change over steps")
+        self.mpl_CanvasToPlot8.ax[0].legend();
+
+        self.mpl_CanvasToPlot8.ax[1].plot(running_losses_df["dev"], '-o', label="dev", color="orange")
+        self.mpl_CanvasToPlot8.ax[1].set_xlabel("Steps")
+        self.mpl_CanvasToPlot8.ax[1].set_ylabel("Weighted x-entropy")
+        self.mpl_CanvasToPlot8.ax[1].set_title("Loss change over steps")
+        self.mpl_CanvasToPlot8.ax[1].legend();
+
+        self.mpl_CanvasToPlot8.ax[2].plot(running_losses_df["test"], '-o', label="test", color="mediumseagreen")
+        self.mpl_CanvasToPlot8.ax[2].set_xlabel("Steps")
+        self.mpl_CanvasToPlot8.ax[2].set_ylabel("Weighted x-entropy")
+        self.mpl_CanvasToPlot8.ax[2].set_title("Loss change over steps")
+        self.mpl_CanvasToPlot8.ax[2].legend();
+        self.mpl_CanvasToPlot8.canvas.draw_idle()
+        self.mpl_CanvasToPlot8.figure.tight_layout()
+        
+
+#===============================================================================
+# The probability landscape of invasive ductal carcinoma ¶
+#===============================================================================
+    def sigmoid(self,x):
+        return 1./(1+np.exp(-x))
+
+    def evaluate_model(self,model, predictions_df, key):
+        was_training = model.training
+        model.eval()
+
+        with torch.no_grad():
+            for i, data in enumerate(self.dataloaders[key]):
+                inputs = data["image"].to(self.device)
+                labels = data["label"].to(self.device)
+                
+                outputs = model(inputs)
+                _, preds = torch.max(outputs, 1)
+                
+                proba = outputs.cpu().numpy().astype(np.float)
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "proba"] = self.sigmoid(proba[:, 1])
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "true"] = data["label"].numpy().astype(np.int)
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "predicted"] = preds.cpu().numpy().astype(np.int)
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "x_coord"] = data["x_coord"].numpy()
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "y_coord"] = data["y_coord"].numpy()
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "patient_id"] = data["patient_id"]
+                
+        predictions_df = predictions_df.dropna()
+        return predictions_df
+#----------------------------------------------------------------------------
+    def IDClandscape_Function(self):
+
+        self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
+        self.progressBar.setVisible(True)
+        self.progressbarAnimation(self.progressBar)
+        self.progressBar.setVisible(False)
+        self.labelWithPhoto.setVisible(False)
+
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot9.setVisible(True)
+
+        if run_training:
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+
+            dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
+            test_predictions = self.evaluate_model(self.model, test_predictions, "test")
+            
+            dev_predictions.to_csv("dev_predictions.csv", index=False)
+            test_predictions.to_csv("test_predictions.csv", index=False)
+    
+        else:
+            
+            dev_predictions = pd.read_csv(self.LOSSES_PATH + "dev_predictions.csv")
+            test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
+            
+            dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
+
+        for n in range(3):
+
+            idx = dev_predictions.patient_id.unique()[n]
+            grid, mask, broken_patches, mask_proba = self.visualise_breast_tissue_Images(idx, pred_df=dev_predictions)
+
+
+            self.mpl_CanvasToPlot9.ax[n, 0].imshow(grid, alpha=0.9)
+            self.mpl_CanvasToPlot9.ax[n, 1].imshow(mask, alpha=0.8)
+            self.mpl_CanvasToPlot9.ax[n, 1].imshow(grid, alpha=0.7)
+            self.mpl_CanvasToPlot9.ax[n, 2].imshow(mask_proba[:,:,0], cmap="YlOrRd")
+
+            for m in range(3):
+                self.mpl_CanvasToPlot9.ax[n, m].set_xlabel("y-coord")
+                self.mpl_CanvasToPlot9.ax[n, m].set_ylabel("x-coord")
+                self.mpl_CanvasToPlot9.ax[n, m].grid(False)
+
+            example = "8956"
+                
+            self.mpl_CanvasToPlot9.ax[n, 0].set_title("Breast tissue slice of patient: " + example)
+            self.mpl_CanvasToPlot9.ax[n, 1].set_title("Cancer tissue colored red \n of patient: " + example);
+            self.mpl_CanvasToPlot9.ax[n, 2].set_title("Cancer probability");
+            self.mpl_CanvasToPlot9.canvas.draw_idle()
+
+#================================================================================
+
+    def validationPredictions(self):
+        self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
+        self.progressBar.setVisible(True)
+        self.progressbarAnimation(self.progressBar)
+        self.progressBar.setVisible(False)
+        self.labelWithPhoto.setVisible(False)
+
+        self.tableView.setVisible(True)
+
+        if run_training:
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+
+            dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
+            test_predictions = self.evaluate_model(self.model, test_predictions, "test")
+            
+            dev_predictions.to_csv("dev_predictions.csv", index=False)
+            test_predictions.to_csv("test_predictions.csv", index=False)
+    
+        else:
+            
+            dev_predictions = pd.read_csv(self.LOSSES_PATH + "dev_predictions.csv")
+            test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
+            
+            dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
+
+
+        self.df2= dev_predictions
+        model = PandasModel(self.df2)
+        self.tableView.setModel(model)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
+        self.tableView.resizeColumnsToContents()
+        self.tableView.setVisible(True)
+        self.rowsCount_01.setVisible(True)
+        self.rowsCount_01.setText(str(model.rowCount())+ " rows found " + "  -->")
+        self.middleLabel.setVisible(True)
+        self.middleLabel.setText("Validation/Dev dataset predictions")
+        self.middleLabel.setGeometry(405,37,1101,33)
+
 
 #===============================================================================
 #validation strategy  selecting 30 % of the 
@@ -587,6 +850,137 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             # str(len(train_ids)/patients.shape[0]*100), str(len(dev_ids)/patients.shape[0]*100), str(len(test_ids)/patients.shape[0]*100)
             self.middleLabel.setText("  Notice: Test data has more cancer patches compared to dev or validation data sets. \n  Non-cancerous patches = 0 (Left), Cancerous patches = 1 (Right) \n  Distributing 70 data for train, 15 for dev/validation and 15 for test ")
             self.middleLabel.setGeometry(432,852,1351,79)
+
+#============================================================================================
+
+    def get_confusion_matrix(self,y_true, y_pred):
+        from sklearn.metrics import confusion_matrix
+
+        transdict = {1: "cancer", 0: "no cancer"}
+        y_t = np.array([transdict[x] for x in y_true])
+        y_p = np.array([transdict[x] for x in y_pred])
+        
+        labels = ["no cancer", "cancer"]
+        index_labels = ["actual no cancer", "actual cancer"]
+        col_labels = ["predicted no cancer", "predicted cancer"]
+        confusion = confusion_matrix(y_t, y_p, labels=labels)
+        confusion_df = pd.DataFrame(confusion, index=index_labels, columns=col_labels)
+        for n in range(2):
+            confusion_df.iloc[n] = confusion_df.iloc[n] / confusion_df.sum(axis=1).iloc[n]
+        return confusion_df
+ 
+    
+    def AUC_score_ConfusionMatrix_Function(self):
+        print("AUC_score & Confusion Matrix")
+        self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
+        self.progressBar.setVisible(True)
+        self.progressbarAnimation(self.progressBar)
+        self.progressBar.setVisible(False)
+
+        if run_training:
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+
+            dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
+            test_predictions = self.evaluate_model(self.model, test_predictions, "test")
+            
+            dev_predictions.to_csv("dev_predictions.csv", index=False)
+            test_predictions.to_csv("test_predictions.csv", index=False)
+    
+        else:
+            
+            dev_predictions = pd.read_csv(self.LOSSES_PATH + "dev_predictions.csv")
+            test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
+            
+            dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
+
+
+
+        conf_matrix_test = self.get_confusion_matrix(test_predictions.TRUE, test_predictions.predicted)
+
+
+        # fpr, tpr, thresholds = roc_curve(test_predictions.true, test_predictions.proba)
+        # fig, ax = plt.subplots(1,1)
+        # ax.plot(fpr,tpr); ax.set_xlabel('False Positive Rate') ; ax.set_ylabel('True Positive Rate'); plt.title('ROC curve - Dev (validation)')
+        # # print(thresholds)
+        
+        from sklearn.metrics import classification_report,balanced_accuracy_score, roc_curve,roc_auc_score
+        auc_score_test = roc_auc_score(test_predictions.TRUE, test_predictions.probability)
+
+
+
+        self.middleLabel.setGeometry(QtCore.QRect(432, 165, 371, 171))
+        self.labelWithPhoto.setVisible(True)
+        self.middleLabel.setVisible(True)                                                                                                                                   
+    
+     
+        self.middleLabel.setText("--------- Confusion Matrix - Test set  ----------\n" + conf_matrix_test)
+        #  + classification_report(test_predictions.TRUE)))
+        # test_predictions.predicted, target_names=['actual no cancer', 'actual cancer']))+'\nBalanced Accuracy score: ' + str(balanced_accuracy_score(test_predictions.TRUE, test_predictions.predicted)+ '\nAUC score:'+ auc_score_test))
+
+
+#============================================================================================
+    def viewAllpatientsProbabilityResult_Function(self):
+        print("Viewing all patient's probability result")
+        self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
+        self.progressBar.setVisible(True)
+        self.progressbarAnimation(self.progressBar)
+        self.progressBar.setVisible(False)
+        self.labelWithPhoto.setVisible(False)
+
+        self.tableView.setVisible(True)
+
+        if run_training:
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+
+            dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
+            test_predictions = self.evaluate_model(self.model, test_predictions, "test")
+            
+            dev_predictions.to_csv("dev_predictions.csv", index=False)
+            test_predictions.to_csv("test_predictions.csv", index=False)
+    
+        else:
+            
+            dev_predictions = pd.read_csv(self.LOSSES_PATH + "dev_predictions.csv")
+            test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
+            
+            dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
+
+
+        self.df2= test_predictions
+        model = PandasModel(self.df2)
+        self.tableView.setModel(model)
+        self.tableView.horizontalHeader().setStretchLastSection(True)
+        self.tableView.resizeColumnsToContents()
+        self.tableView.setVisible(True)
+        self.rowsCount_01.setVisible(True)
+        self.rowsCount_01.setText(str(model.rowCount())+ " rows found " + "  -->")
+        self.middleLabel.setVisible(True)
+        self.middleLabel.setText("Test predictions")
+        self.middleLabel.setGeometry(405,37,1101,33)
+
+
+#============================================================================================
+    def exportPredictionResult_Function(self):
+        print("Exporting prediction result")
+        self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
+        self.progressBar.setVisible(True)
+        self.progressbarAnimation(self.progressBar)
+        self.progressBar.setVisible(False)
+        self.labelWithPhoto.setVisible(False)
+
+        self.tableView.setVisible(True)
+        
+        
+        # dev_predictions.to_csv("dev_predictions.csv", index=False)
+
+
+
+
 #============================================================================================
 
 
@@ -611,6 +1005,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             print("creating datasets")
             self.hideWidgets()
             self.BigScreenWidget.setVisible(True)
+            self.mpl_CanvasToPlot6.setVisible(True)
 
             train_transform = self.my_transform(key="train", plot=True)
             val_transform = self.my_transform(key="val", plot=True)
@@ -628,9 +1023,12 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
                 self.mpl_CanvasToPlot6.ax[0,m].set_title(str(self.train_df.patient_id.values[m]) + "\n target: " + str(self.train_df.target.values[m]))
                 self.mpl_CanvasToPlot6.ax[1,m].set_title("Preprocessing for train")
                 self.mpl_CanvasToPlot6.ax[2,m].set_title("Preprocessing for val")
-    
+                self.mpl_CanvasToPlot6.ax[0,m].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
+                self.mpl_CanvasToPlot6.ax[1,m].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
+                self.mpl_CanvasToPlot6.ax[2,m].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
 
-
+            self.mpl_CanvasToPlot6.figure.suptitle("Image patch of a patient is converted in to RGB and the augmentation is performed", x=0.3 )    
+            self.mpl_CanvasToPlot6.canvas.draw_idle()  
 #====================================================================================================
 #=================Functions==========================================================================   
 # 
@@ -874,15 +1272,6 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
      #function to highlight cancerous patches
     def visualise_breast_tissue_Images(self,patient_id, pred_df=None):
         print("Visualizing breast tissue images")
-        self.hideWidgets()
-        self.progressBar.setVisible(True)
-        self.progressbarAnimation(self.progressBar)
-        self.progressBar.setVisible(False)
-        self.rowsCount_01.setVisible(False)
-
-        self.BigScreenWidget.setVisible(True)
-        self.mpl_CanvasToPlot4.setVisible(True)
-
 
         example_df = self.get_patient_dataframe(patient_id)
         max_point = [example_df.y.max()-1, example_df.x.max()-1]
@@ -914,9 +1303,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
                     mask[y_start:y_end, x_start:x_end, 2] = 0
                 if pred_df is not None:
                     
-                    proba = patient_df[
-                        (patient_df.x==x_coord) & (patient_df.y==y_coord)].proba
-                    mask_proba[y_start:y_end, x_start:x_end, 0] = np.float(proba)
+                    probability = patient_df[
+                        (patient_df.x_coord==x_coord) & (patient_df.y_coord==y_coord)].probability
+                    mask_proba[y_start:y_end, x_start:x_end, 0] = np.float(probability)
 
             except ValueError:
                 broken_patches.append(example_df.path.values[n])
@@ -925,6 +1314,16 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 
 
     def visualizeBreastTissueImages_Function(self):
+            self.hideWidgets()
+            self.labelWithPhoto.setVisible(True)
+            self.progressBar.setVisible(True)
+            self.progressbarAnimation(self.progressBar)
+            self.progressBar.setVisible(False)
+            self.labelWithPhoto.setVisible(False)
+
+            self.BigScreenWidget.setVisible(True)
+            self.mpl_CanvasToPlot4.setVisible(True)
+
             example = "8956"
             grid, mask, broken_patches,_ = self.visualise_breast_tissue_Images(example)
             
@@ -991,6 +1390,10 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
   #=============================================================================      
     def hideWidgets(self):
         #hiding some widgets
+            self.mpl_CanvasToPlot3.setVisible(False)
+            self.mpl_CanvasToPlot7.setVisible(False)
+            self.mpl_CanvasToPlot4.setVisible(False)
+            self.mpl_CanvasToPlot6.setVisible(False)
             self.middleLabel.setVisible(False)
             self.plottingLeftWidget.setVisible(False)
             self.plottingRightWidget.setVisible(False)
@@ -1008,6 +1411,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             self.mpl_CanvasToPlot5.setVisible(False)
             self.plottingLeftWidget.setVisible(False)
             self.plottingRightWidget.setVisible(False)
+            self.mpl_CanvasToPlot8.setVisible(False)
+            self.mpl_CanvasToPlot9.setVisible(False)
         
 
 #==============================================================================
@@ -1022,10 +1427,11 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     def reviewPatches_Function(self):
         print("Reviewing patches")
         self.hideWidgets()
+        self.labelWithPhoto.setVisible(True)
         self.progressBar.setVisible(True)
         self.progressbarAnimation(self.progressBar)
         self.progressBar.setVisible(False)
-        self.rowsCount_01.setVisible(False)
+        self.labelWithPhoto.setVisible(False)
 
         self.BigScreenWidget.setVisible(True)
         self.mpl_CanvasToPlot2.setVisible(True)
@@ -1114,7 +1520,11 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.ViewDatasets.setText(_translate("mainWindow", "View (training, validation, and  test data sets)"))
         self.createDatasetButton.setText(_translate("mainWindow", "Create dataset for training"))
         self.applyCNNfilter_Button.setText(_translate("mainWindow", "  Apply CNN Filter"))
-        self.Search_OptimalCyclicalButton.setText(_translate("mainWindow", "Search optimal cyclical learning rate"))
+        self.LowLRButton.setText(_translate("mainWindow", "  start_lr = 1e-6\nend_lr = 0.006"))
+        self.HighLRButton.setText(_translate("mainWindow", "   start_lr = 1e-6\nend_lr = 0.1"))
+       
+        self.lossConvergenceButton.setText(_translate("mainWindow", "   View Loss convergence"))
+
         self.idcprobabilityMap_button.setText(_translate("mainWindow", "  (IDC) Cancer probability landscape"))
         self.validationDataSet_Button.setText(_translate("mainWindow", " Validation predictions "))
         self.validationConfusionMatrix_Button.setText(_translate("mainWindow", "AUC Score and confusion matrix "))
@@ -1122,7 +1532,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.negative_Checkbox.setText(_translate("mainWindow", "negative"))
         self.positive_Checkbox.setText(_translate("mainWindow", "positive"))
 
-        
+        self.SearchLearningRatelabel.setText(_translate("mainWindow", "  (Search optimal cyclical learning rate)"))
         self.datadistributionLabel.setText(_translate("mainWindow", "Set data distribution ( with total sum of 100%)"))
         self.train.setPlaceholderText(_translate("mainWindow", "train"))
         self.validationdata_.setPlaceholderText(_translate("mainWindow", "dev"))
@@ -1131,8 +1541,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.predictionResult.setText(_translate("mainWindow", "Export Prediction Result"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("mainWindow", "Table"))
         self.uploadCSV.setText(_translate("mainWindow", "Upload CSV"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("mainWindow", " Plots"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("mainWindow", "Page"))
+        # self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("mainWindow", " Plots"))
+        # self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_3), _translate("mainWindow", "Page"))
 
 
    ##==========Attaching the functions to the buttons when clicked===========================================
@@ -1145,8 +1555,16 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.visualizeBreastTissue.clicked.connect(self.visualizeBreastTissueImages_Function)
         self.ViewDatasets.clicked.connect(self.targetdistributions_Function)
         self.createDatasetButton.clicked.connect(self.createDatasets)
-        self.Search_OptimalCyclicalButton.clicked.connect(self.searchingOptimalCyclical_lr_Function)
+        self.HighLRButton.clicked.connect(self.searchingOptimalCyclical_HIGH_lr_Function)
+        self.LowLRButton.clicked.connect(self.searchingOptimalCyclical_LOW_lr_Function)
+        self.lossConvergenceButton.clicked.connect(self.lossConvergence_Function)
+        self.idcprobabilityMap_button.clicked.connect(self.IDClandscape_Function)
+        self.validationDataSet_Button.clicked.connect(self.validationPredictions)
+        self.viewAllpatients_probabilityButton.clicked.connect(self.viewAllpatientsProbabilityResult_Function)
+        self.validationConfusionMatrix_Button.clicked.connect(self.AUC_score_ConfusionMatrix_Function)
+        self.predictionResult.clicked.connect(self.exportPredictionResult_Function)
         
+
 
 
 if __name__ == "__main__":
@@ -1161,22 +1579,3 @@ if __name__ == "__main__":
 
 #=============================================================================
 
-class MplWidget(QtWidgets.QWidget):
-    send_fig = QtCore.pyqtSignal(str)
-  
-    def __init__(self, parent=None, f1=15, f2=8, sp1=1, sp2=2):
-        
-        super().__init__(parent)
-        
-        # figsize=(10,5)
-        self.figure = Figure(figsize=(f1,f2))
-        self.canvas = FigureCanvasQTAgg(self.figure)
-        self.toolbar = NavigationToolbar2QT(self.canvas, self)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.toolbar)
-        layout.addWidget(self.canvas)
-        # subplots = (1,2)
-        self.ax = self.canvas.figure.subplots(sp1,sp2)
-
-
-#============================================
