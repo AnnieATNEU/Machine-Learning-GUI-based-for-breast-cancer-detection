@@ -5,10 +5,11 @@ from PyQt5.QtWidgets import QMainWindow, QAction, QMenuBar, QMessageBox, QProgre
 from PyQt5.QtGui import QFont , QMovie
 from DirectoryModel import DirProxyModel
 from PyQt5.QtWebEngineWidgets import QWebEngineView 
-from PySide2extn.RoundProgressBar import roundProgressBar
+# from PySide2extn.RoundProgressBar import roundProgressBar
 import os,sys, pandas as pd, seaborn as sns, matplotlib.pyplot as plt
 from PIL import Image
 import numpy as np
+import sqlite3
 from torch.utils.data import Dataset, DataLoader
 # from matplotlib.axes import Subplot as plt
 
@@ -24,6 +25,8 @@ class Ui_mainWindow(object):
 #========= setting up some GLOBAL variable values=============
         self.pathfiles =  'C:/Users/a_ade/Desktop/Files/Capstone/Breast_Cancer/breastCancerData.csv'
         self.df = pd.read_csv(self.pathfiles)
+        self.db= sqlite3.connect('breastcancerprediction.db')   # variable to connect to database file (used in launch_main.py)
+     
         # self.base_path = "breast-histopathology-images/IDC_regular_ps50_idx5/"
 
 #======================================================================================
@@ -1078,6 +1081,8 @@ class Ui_mainWindow(object):
 #====================================================
 #=================Functions=========================    
         self.setBackgroundImage()
+
+        # self.createDatabase()
 
 #========================================================
     def setBackgroundImage(self):

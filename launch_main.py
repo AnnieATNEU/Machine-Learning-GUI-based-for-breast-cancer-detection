@@ -13,12 +13,14 @@ from PyQt5.QtCore import QStringListModel, Qt
 from PyQt5.QtWidgets import (QMainWindow, QAction, QMenuBar, 
 QMessageBox, QProgressBar,QMenu)
 
-from PySide2extn.RoundProgressBar import roundProgressBar
+# from PySide2extn.RoundProgressBar import roundProgressBar
 
 from PyQt5.QtGui import QFont
 from DirectoryModel import DirProxyModel, PandasModel
 from uiStructure import Ui_mainWindow
 import warnings
+import sqlite3
+
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
@@ -168,7 +170,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #==============================================================================
 #Setting up Machine Learning workflow
         BATCH_SIZE = 32
-        self.NUM_CLASSES = 2
+        self.NUM_CLASSES = 2 # Number of classes in the dataset
         self.OUTPUT_PATH = ""
         self.MODEL_PATH = "breastcancermodel/"
         self.LOSSES_PATH = "breastcancermodel/"
@@ -212,12 +214,13 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     def SettingCNNFilter_Function(self):
           print("setting CNNFilter...")
 
-          model = torchvision.models.resnet18(pretrained=False)
+          model = torchvision.models.resnet18(pretrained=False) #Model chosen
           if run_training:
                 model.load_state_dict(torch.load("../input/pretrained-pytorch-models/resnet18-5c106cde.pth"))
           num_features = model.fc.in_features
           print(num_features)
 
+          ## this is the 3 layers of the Convolutional Neural Network (CNN)
           model.fc = nn.Sequential(
                 nn.Linear(num_features, 512),
                 nn.ReLU(),
@@ -915,7 +918,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.middleLabel.setVisible(True)                                                                                                                                   
     
      
-        self.middleLabel.setText("--------- Confusion Matrix - Test set  ----------\n" + conf_matrix_test)
+        self.middleLabel.setText("--------- Confusion Matrix - Test set  ----------\n" + str(conf_matrix_test))
         #  + classification_report(test_predictions.TRUE)))
         # test_predictions.predicted, target_names=['actual no cancer', 'actual cancer']))+'\nBalanced Accuracy score: ' + str(balanced_accuracy_score(test_predictions.TRUE, test_predictions.predicted)+ '\nAUC score:'+ auc_score_test))
 
@@ -924,6 +927,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     def viewAllpatientsProbabilityResult_Function(self):
         print("Viewing all patient's probability result")
         self.hideWidgets()
+        self.createDatabase()
         self.labelWithPhoto.setVisible(True)
         self.progressBar.setVisible(True)
         self.progressbarAnimation(self.progressBar)
@@ -949,6 +953,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             
             dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
 
+        test_predictions.to_csv("test_predictions.csv", index=False)
 
         self.df2= test_predictions
         model = PandasModel(self.df2)
@@ -961,6 +966,75 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.middleLabel.setVisible(True)
         self.middleLabel.setText("Test predictions")
         self.middleLabel.setGeometry(405,37,1101,33)
+
+#=========================================================================
+    def CheckBox_Function(self):
+        text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid
+        dt0 = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE TRUE = 0 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
+        df0= pd.DataFrame(dt0, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
+       
+        dt1 = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE TRUE = 1 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
+        df1= pd.DataFrame(dt1, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
+              
+        
+        if self.negative_Checkbox.isChecked():
+            print("viewing negative predictions")
+            self.positive_Checkbox.setChecked(False)
+
+            if self.searchPatientID.text():
+                self.reusabledisplay_Function(text, df0)
+
+            if not self.searchPatientID.text():
+                self.reusabledisplay_Function(text, df0)
+                self.middleLabel.setText("This is all the test data patient's predictions (for negative)")  
+
+        if self.positive_Checkbox.isChecked():
+            print("viewing positive predictions")
+            self.negative_Checkbox.setChecked(False)
+            if self.searchPatientID.text():
+                self.reusabledisplay_Function(text, df1)
+
+            if not self.searchPatientID.text():
+                self.reusabledisplay_Function(text, df1)
+                self.middleLabel.setText("This is all the test data patient's predictions (for positive)")  
+
+        else:
+            print("resetting checkbox ")
+            self.middleLabel.setText("This is all the test data patient's predictions")
+            dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE patient_id LIKE '%"+text+"%'  ").fetchall() 
+            df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
+            self.reusabledisplay_Function(text, df)
+#==========================================================================
+    def searchPatient_Function(self):
+        text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid
+        print(text) 
+        dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE patient_id LIKE '%"+text+"%' ").fetchall() 
+        df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])
+        
+        self.reusabledisplay_Function(text,df)
+
+   #creating reusable display table view prediction result function
+    def reusabledisplay_Function(self,text,df):
+        self.hideWidgets()
+        self.tableView.setVisible(True)
+        self.rowsCount_01.setVisible(True)
+        self.progressBar.setVisible(True)
+        self.progressbarAnimation(self.progressBar)
+        self.tableView.reset()
+        self.progressBar.setVisible(False)
+
+        self.model = PandasModel(df)   
+        self.tableView.setModel(self.model)
+        self.tableView.resizeColumnsToContents()
+        self.rowsCount_01.setText(str(self.model.rowCount())+ " rows found " + "  -->")
+  
+        self.middleLabel.setVisible(True)
+        self.middleLabel.setGeometry(405,37,1101,33)
+        if self.searchPatientID.text():
+            self.middleLabel.setText("This is patient # "+ text  +" predictions")
+        if not self.searchPatientID.text():
+            self.middleLabel.setText(" Test data predictions")
+      
 
 
 #============================================================================================
@@ -1050,7 +1124,19 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             # setting value to progress bar
             pB.setValue(i) 
 
+#====================================================================
 
+    def createDatabase(self):  #this function is only use to create the database"
+
+        # engine = sqlalchemy.create_engine('sqlite:///breastcancerprediction.db') #to create database engine if not yet created
+        self.df = pd.read_csv('test_predictions.csv',encoding='latin-1',index_col=[0])
+        #creating table in database and its columns
+        connection = sqlite3.connect('breastcancerprediction.db')                                                                                                                                                                                                                                                                                                                                                        
+        create_sqltable = """CREATE TABLE IF NOT EXISTS breastCancer_Predictions ("TRUE" VARCHAR NOT NULL,"predicted" VARCHAR NOT NULL,"probability" VARCHAR NOT NULL, "x_coord" VARCHAR NOT NULL,  "y_coord" VARCHAR NOT NULL, "patient_id" VARCHAR NOT NULL )"""
+        cursor = connection.cursor()
+        cursor.execute(create_sqltable)
+        self.df.to_sql('breastCancer_Predictions', connection, if_exists='replace') 
+        print("database created")        
 
 #====================================================
   #function for Qfiledialog that let user select folders but also view what's in it , 
@@ -1563,6 +1649,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.viewAllpatients_probabilityButton.clicked.connect(self.viewAllpatientsProbabilityResult_Function)
         self.validationConfusionMatrix_Button.clicked.connect(self.AUC_score_ConfusionMatrix_Function)
         self.predictionResult.clicked.connect(self.exportPredictionResult_Function)
+        self.searchPatientID.returnPressed.connect(self.searchPatient_Function)
+        self.negative_Checkbox.stateChanged.connect(self.CheckBox_Function)
+        self.positive_Checkbox.stateChanged.connect(self.CheckBox_Function)
         
 
 
