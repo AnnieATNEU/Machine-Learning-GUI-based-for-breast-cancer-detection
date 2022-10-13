@@ -273,7 +273,7 @@ class Ui_mainWindow(object):
 
 
         self.EDALabel = QtWidgets.QLabel(self.tab)
-        self.EDALabel.setGeometry(QtCore.QRect(59, 30, 271, 21))
+        self.EDALabel.setGeometry(QtCore.QRect(48, 43, 271, 21))
         self.EDALabel.setStyleSheet("font: 600 9pt \"Segoe UI\";\n"
 "border-color: rgb(0, 170, 255);\n"
 "text-decoration: underline;")
@@ -1009,12 +1009,125 @@ class Ui_mainWindow(object):
         icon12.addPixmap(QtGui.QPixmap("imagesicons/new.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
         self.tabWidget.addTab(self.tab_3, icon12, "")
 
+#===============================================================================
+        self.view_table = QtWidgets.QPushButton(self.BigScreenWidget)
+        self.view_table.setGeometry(QtCore.QRect(60, 750, 161, 31))
+        self.view_table.setStyleSheet("\n"
+"QPushButton#view_table{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"background-color: rgb(149, 200, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#view_table\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        self.view_table.setIcon(icon3)
+        self.view_table.setObjectName("view_table")
+        self.view_table.setVisible(False)
+
+        self.view_graph = QtWidgets.QPushButton(self.BigScreenWidget)
+        self.view_graph.setGeometry(QtCore.QRect(240, 750, 181, 31))
+        self.view_graph.setStyleSheet("\n"
+"QPushButton#view_graph{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"background-color: rgb(149, 200, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#view_graph\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        self.view_graph.setIcon(icon3)
+        self.view_graph.setObjectName("view_graph")
+        self.view_graph.setVisible(False)
+#==========================================================
+        self.view_table1 = QtWidgets.QPushButton(self.BigScreenWidget)
+        self.view_table1.setGeometry(QtCore.QRect(60, 750, 161, 31))
+        self.view_table1.setStyleSheet("\n"
+"QPushButton#view_table1{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"background-color: rgb(149, 200, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#view_table1\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        self.view_table1.setIcon(icon3)
+        self.view_table1.setObjectName("view_table1")
+        self.view_table1.setVisible(False)
+
+        self.view_graph1 = QtWidgets.QPushButton(self.BigScreenWidget)
+        self.view_graph1.setGeometry(QtCore.QRect(240, 750, 181, 31))
+        self.view_graph1.setStyleSheet("\n"
+"QPushButton#view_graph1{\n"
+"    font: 500 9pt \"Segoe UI\";\n"
+"    \n"
+"border-color:rgb(16, 79, 127);\n"
+"background-color: rgb(149, 200, 255);\n"
+"border-radius:12px;\n"
+"border-style:outset;\n"
+"border-width:2px;\n"
+"\n"
+"border-color:rgb(16, 79, 127);\n"
+"\n"
+";}\n"
+"\n"
+"QPushButton:hover#view_graph1\n"
+"{\n"
+"border-width:2px;\n"
+"border-color: rgb(84, 204, 255);\n"
+"}\n"
+"\n"
+"")
+        self.view_graph1.setIcon(icon3)
+        self.view_graph1.setObjectName("view_graph1")
+        self.view_graph1.setVisible(False)
+
         self.retranslateUi(mainWindow)
         self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
+#======================================================================
+     
 
         # self.canvas_scrollarea =  QtWidgets.QScrollArea(self.tab1Behindwidget, widgetResizable=True)
         # self.canvas_scrollarea.setWidget(self.BigScreenWidget)
+
+        #to make matplotlib canvas
         self.mpl_RightCanvasToPlot = MplWidget(parent=self.plottingRightWidget,f1=10, f2=6, sp1=5, sp2=10)
         self.mpl_LeftCanvasToPlot = MplWidget(parent=self.plottingLeftWidget, f1=10, f2=6, sp1=5, sp2=10)
         self.mpl_CanvasToPlot = MplWidget(parent=self.BigScreenWidget, f1=10, f2=6, sp1=5, sp2=10)
@@ -1023,8 +1136,8 @@ class Ui_mainWindow(object):
         self.mpl_CanvasToPlot5 = MplWidget(parent=self.BigScreenWidget, f1=15, f2=7, sp1=1, sp2=3)
         self.mpl_CanvasToPlot6 = MplWidget(parent=self.BigScreenWidget, f1=14, f2=8, sp1=3, sp2=6)
         self.mpl_CanvasToPlot7 = MplWidget(parent=self.BigScreenWidget, f1=20, f2=5, sp1=1, sp2=2)
-        self.mpl_CanvasToPlot8 = MplWidget(parent=self.BigScreenWidget, f1=14, f2=8, sp1=3, sp2=1) 
-        self.mpl_CanvasToPlot9 = MplWidget(parent=self.BigScreenWidget, f1=8, f2=8, sp1=3, sp2=3) 
+        self.mpl_CanvasToPlot8 = MplWidget(parent=self.BigScreenWidget, f1=13, f2=7, sp1=3, sp2=1) 
+        self.mpl_CanvasToPlot9 = MplWidget(parent=self.BigScreenWidget, f1=10, f2=8, sp1=3, sp2=3) 
 
         self.mpl_CanvasToPlot3.setVisible(False)
         self.mpl_CanvasToPlot9.setVisible(False)
@@ -1033,6 +1146,7 @@ class Ui_mainWindow(object):
         self.mpl_CanvasToPlot6.setVisible(False)
         self.mpl_CanvasToPlot8.setVisible(False)
 
+        #to make plotly canvas
         self.mpl_CanvasToPlot2 = QWebEngineView(self.BigScreenWidget)
 
 

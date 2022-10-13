@@ -142,17 +142,18 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #*******************************************************************************
 #Target distributions 
         patients = self.df.patient_id.unique()
-        data=self.df
+        data=self.df  #this is our main source of path dataframe (self.df) was declared from the other class. It is the dataframe of
+                     # all the path of microscopic images from each patient
 
         train_ids, sub_test_ids = train_test_split(patients,test_size=0.3,random_state=0)
         test_ids, dev_ids = train_test_split(sub_test_ids, test_size=0.5, random_state=0)
 
-        train_df = data.loc[data.patient_id.isin(train_ids),:].copy()
+        train_df = data.loc[data.patient_id.isin(train_ids),:].copy()  #here we used the data variable declared above $ make a copy
         test_df = data.loc[data.patient_id.isin(test_ids),:].copy()
         dev_df = data.loc[data.patient_id.isin(dev_ids),:].copy()
 
-        self.train_df = self.extract_coords(train_df)
-        self.test_df = self.extract_coords(test_df)
+        self.train_df = self.extract_coords(train_df)    #to get the x and y coordinates of the tissue images dimensions
+        self.test_df = self.extract_coords(test_df)      #extract
         self.dev_df = self.extract_coords(dev_df)
 
 #*********************************************************************************************
@@ -388,8 +389,17 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 
 #=========================================================================
     def applyCNNFilter_Function(self):
+        self.hideWidgets()
         print("applying CNNFilter")
 
+        self.middleLabel.setGeometry(QtCore.QRect(432, 165, 371, 171))
+        self.labelWithPhoto.setVisible(True)
+        self.middleLabel.setVisible(True)
+              
+        self.middleLabel.setText("Applying Convolutional Neural Network Layer. . . .\n Please Wait...")
+        self.SettingCNNFilter_Function()
+        self.middleLabel.setText("Applying Convolutional Neural Network Layer . . . .")
+        self.middleLabel.setText("Done! You may proceed . . . .")
 
 
 
@@ -612,23 +622,29 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.mpl_CanvasToPlot8.setVisible(True)
     
 
-        self.mpl_CanvasToPlot8.ax[0].plot(running_losses_df["train"], '-o', label="train")
+        self.mpl_CanvasToPlot8.ax[0].plot(running_losses_df["train"], label="train")
         self.mpl_CanvasToPlot8.ax[0].set_xlabel("Steps")
         self.mpl_CanvasToPlot8.ax[0].set_ylabel("Weighted x-entropy")
         self.mpl_CanvasToPlot8.ax[0].set_title("Loss change over steps")
         self.mpl_CanvasToPlot8.ax[0].legend();
+        self.mpl_CanvasToPlot8.ax[0].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
 
-        self.mpl_CanvasToPlot8.ax[1].plot(running_losses_df["dev"], '-o', label="dev", color="orange")
+        self.mpl_CanvasToPlot8.ax[1].plot(running_losses_df["dev"], label="dev", color="orange")
         self.mpl_CanvasToPlot8.ax[1].set_xlabel("Steps")
         self.mpl_CanvasToPlot8.ax[1].set_ylabel("Weighted x-entropy")
         self.mpl_CanvasToPlot8.ax[1].set_title("Loss change over steps")
         self.mpl_CanvasToPlot8.ax[1].legend();
+        self.mpl_CanvasToPlot8.ax[1].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
 
-        self.mpl_CanvasToPlot8.ax[2].plot(running_losses_df["test"], '-o', label="test", color="mediumseagreen")
+        self.mpl_CanvasToPlot8.ax[2].plot(running_losses_df["test"],label="test", color="mediumseagreen")
         self.mpl_CanvasToPlot8.ax[2].set_xlabel("Steps")
         self.mpl_CanvasToPlot8.ax[2].set_ylabel("Weighted x-entropy")
         self.mpl_CanvasToPlot8.ax[2].set_title("Loss change over steps")
         self.mpl_CanvasToPlot8.ax[2].legend();
+        self.mpl_CanvasToPlot8.ax[2].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
+        # self.mpl_CanvasToPlot4.ax[1].grid(False)
+   
+            
         self.mpl_CanvasToPlot8.canvas.draw_idle()
         self.mpl_CanvasToPlot8.figure.tight_layout()
         
@@ -639,6 +655,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     def sigmoid(self,x):
         return 1./(1+np.exp(-x))
 
+#to evaluate the model, parameter is the model used, the predictions dataframe and key
     def evaluate_model(self,model, predictions_df, key):
         was_training = model.training
         model.eval()
@@ -652,7 +669,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
                 _, preds = torch.max(outputs, 1)
                 
                 proba = outputs.cpu().numpy().astype(np.float)
-                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "proba"] = self.sigmoid(proba[:, 1])
+                predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "probability"] = self.sigmoid(proba[:, 1])
                 predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "true"] = data["label"].numpy().astype(np.int)
                 predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "predicted"] = preds.cpu().numpy().astype(np.int)
                 predictions_df.loc[i*self.BATCH_SIZE:(i+1)*self.BATCH_SIZE-1, "x_coord"] = data["x_coord"].numpy()
@@ -675,8 +692,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.mpl_CanvasToPlot9.setVisible(True)
 
         if run_training:
-            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
-            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "probability"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "probability"])
 
             dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
             test_predictions = self.evaluate_model(self.model, test_predictions, "test")
@@ -690,12 +707,12 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
             
             dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
-
+        
         for n in range(3):
 
             idx = dev_predictions.patient_id.unique()[n]
             grid, mask, broken_patches, mask_proba = self.visualise_breast_tissue_Images(idx, pred_df=dev_predictions)
-
+   
 
             self.mpl_CanvasToPlot9.ax[n, 0].imshow(grid, alpha=0.9)
             self.mpl_CanvasToPlot9.ax[n, 1].imshow(mask, alpha=0.8)
@@ -703,15 +720,21 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             self.mpl_CanvasToPlot9.ax[n, 2].imshow(mask_proba[:,:,0], cmap="YlOrRd")
 
             for m in range(3):
-                self.mpl_CanvasToPlot9.ax[n, m].set_xlabel("y-coord")
-                self.mpl_CanvasToPlot9.ax[n, m].set_ylabel("x-coord")
+                # self.mpl_CanvasToPlot9.ax[n, m].set_xlabel("y-coord")
+                # self.mpl_CanvasToPlot9.ax[n, m].set_ylabel("x-coord")
                 self.mpl_CanvasToPlot9.ax[n, m].grid(False)
+                # self.mpl_CanvasToPlot9.tight_layout()
 
             example = "8956"
                 
             self.mpl_CanvasToPlot9.ax[n, 0].set_title("Breast tissue slice of patient: " + example)
             self.mpl_CanvasToPlot9.ax[n, 1].set_title("Cancer tissue colored red \n of patient: " + example);
             self.mpl_CanvasToPlot9.ax[n, 2].set_title("Cancer probability");
+            self.mpl_CanvasToPlot9.ax[n, 0].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
+            self.mpl_CanvasToPlot9.ax[n, 1].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
+            self.mpl_CanvasToPlot9.ax[n, 2].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
+
+        
             self.mpl_CanvasToPlot9.canvas.draw_idle()
 
 #================================================================================
@@ -724,11 +747,12 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.progressBar.setVisible(False)
         self.labelWithPhoto.setVisible(False)
 
-        self.tableView.setVisible(True)
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot2.setVisible(True)
 
         if run_training:
-            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
-            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["TRUE", "predicted", "probability"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["TRUE", "predicted", "probability"])
 
             dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
             test_predictions = self.evaluate_model(self.model, test_predictions, "test")
@@ -742,20 +766,55 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
             
             dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
+       
+        self.view_graph.setVisible(True)
+        self.view_table.setVisible(True)
 
+        # if self.view_table.isChecked():
 
-        self.df2= dev_predictions
-        model = PandasModel(self.df2)
-        self.tableView.setModel(model)
-        self.tableView.horizontalHeader().setStretchLastSection(True)
-        self.tableView.resizeColumnsToContents()
-        self.tableView.setVisible(True)
-        self.rowsCount_01.setVisible(True)
-        self.rowsCount_01.setText(str(model.rowCount())+ " rows found " + "  -->")
+        #     self.tableView.setVisible(True)        
+        #     self.df2= dev_predictions
+        #     model = PandasModel(self.df2)
+        #     self.tableView.setModel(model)
+        #     self.tableView.horizontalHeader().setStretchLastSection(True)
+        #     self.tableView.resizeColumnsToContents()
+        #     self.tableView.setVisible(True)
+        #     self.rowsCount_01.setVisible(True)
+        #     self.rowsCount_01.setText(str(model.rowCount())+ " rows found " + "  -->")
+        #     self.middleLabel.setVisible(True)
+        #     self.middleLabel.setText("Validation/Dev dataset predictions")
+        #     self.middleLabel.setGeometry(405,37,1101,33)
+
+        # if self.view_graph.isChecked():
+  
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot2.setVisible(True)
+
+        fig= px.sunburst(dev_predictions, 
+                            path=['patient_id', 'TRUE'], 
+                            values='probability',
+                            color='predicted', 
+                            color_continuous_scale='RdBu')
+        
+        self.BigScreenWidget.setVisible(True)
+        self.mpl_CanvasToPlot2.setVisible(True)
+        self.tableView.setVisible(False)   
+
+        self.mpl_CanvasToPlot2.setHtml(fig.to_html(include_plotlyjs='cdn'))
+        self.mpl_CanvasToPlot2.resize(1390,750)
         self.middleLabel.setVisible(True)
         self.middleLabel.setText("Validation/Dev dataset predictions")
         self.middleLabel.setGeometry(405,37,1101,33)
 
+                    # fig= px.treemap(dev_predictions,             
+                                # x="x_coord", 
+                                # y="y_coord", 
+                                # color="patient_id",
+                                # size='probability', 
+                                # hover_data=['predicted'])
+
+    
+    
 
 #===============================================================================
 #validation strategy  selecting 30 % of the 
@@ -882,8 +941,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.progressBar.setVisible(False)
 
         if run_training:
-            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
-            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "probability"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "probability"])
 
             dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
             test_predictions = self.evaluate_model(self.model, test_predictions, "test")
@@ -911,14 +970,13 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         from sklearn.metrics import classification_report,balanced_accuracy_score, roc_curve,roc_auc_score
         auc_score_test = roc_auc_score(test_predictions.TRUE, test_predictions.probability)
 
-
-
         self.middleLabel.setGeometry(QtCore.QRect(432, 165, 371, 171))
         self.labelWithPhoto.setVisible(True)
         self.middleLabel.setVisible(True)                                                                                                                                   
     
      
-        self.middleLabel.setText("--------- Confusion Matrix - Test set  ----------\n" + str(conf_matrix_test))
+        self.middleLabel.setText("--------- Confusion Matrix - Test set  ----------\n" + str(conf_matrix_test) )
+        # '\nBalanced Accuracy score: ' + str(balanced_accuracy_score(test_predictions.TRUE, test_predictions.predicted)+ '\nAUC score:'+ auc_score_test))
         #  + classification_report(test_predictions.TRUE)))
         # test_predictions.predicted, target_names=['actual no cancer', 'actual cancer']))+'\nBalanced Accuracy score: ' + str(balanced_accuracy_score(test_predictions.TRUE, test_predictions.predicted)+ '\nAUC score:'+ auc_score_test))
 
@@ -937,8 +995,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.tableView.setVisible(True)
 
         if run_training:
-            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["true", "predicted", "proba"])
-            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["true", "predicted", "proba"])
+            dev_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["dev"]), columns = ["TRUE", "predicted", "probability"])
+            test_predictions = pd.DataFrame(index = np.arange(0, self.dataset_sizes["test"]), columns = ["TRUE", "predicted", "probability"])
 
             dev_predictions = self.evaluate_model(self.model, dev_predictions, "dev")
             test_predictions = self.evaluate_model(self.model, test_predictions, "test")
@@ -948,13 +1006,14 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     
         else:
             
-            dev_predictions = pd.read_csv(self.LOSSES_PATH + "dev_predictions.csv")
-            test_predictions = pd.read_csv(self.LOSSES_PATH + "test_predictions.csv")
+            dev_predictions = pd.read_csv(self.LOSSES_PATH + "Cleaned_dev_predictions.csv")
+            test_predictions = pd.read_csv(self.LOSSES_PATH + "Cleaned_test_predictions.csv")
             
             dev_predictions.patient_id = dev_predictions.patient_id.astype(np.str)
 
         test_predictions.to_csv("test_predictions.csv", index=False)
-
+        test_predictions
+        
         self.df2= test_predictions
         model = PandasModel(self.df2)
         self.tableView.setModel(model)
@@ -964,10 +1023,59 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.rowsCount_01.setVisible(True)
         self.rowsCount_01.setText(str(model.rowCount())+ " rows found " + "  -->")
         self.middleLabel.setVisible(True)
-        self.middleLabel.setText("Test predictions")
+        self.middleLabel.setText("This is all the test data patient's predictions")
         self.middleLabel.setGeometry(405,37,1101,33)
 
+
+
+        
+        # if self.view_table.isChecked():
+
+        #     self.tableView.setVisible(True)        
+        #     self.df2= dev_predictions
+        #     model = PandasModel(self.df2)
+        #     self.tableView.setModel(model)
+        #     self.tableView.horizontalHeader().setStretchLastSection(True)
+        #     self.tableView.resizeColumnsToContents()
+        #     self.tableView.setVisible(True)
+        #     self.rowsCount_01.setVisible(True)
+        #     self.rowsCount_01.setText(str(model.rowCount())+ " rows found " + "  -->")
+        #     self.middleLabel.setVisible(True)
+        #     self.middleLabel.setText("Validation/Dev dataset predictions")
+        #     self.middleLabel.setGeometry(405,37,1101,33)
+
+        # if self.view_graph.isChecked():
+  
+        # self.BigScreenWidget.setVisible(True)
+        # self.mpl_CanvasToPlot2.setVisible(True)
+
+        # fig= px.sunburst(dev_predictions, 
+        #                     path=['patient_id', 'TRUE'], 
+        #                     values='probability',
+        #                     color='predicted', 
+        #                     color_continuous_scale='RdBu')
+        
+        # self.BigScreenWidget.setVisible(True)
+        # self.mpl_CanvasToPlot2.setVisible(True)
+        # self.tableView.setVisible(False)   
+
+        # self.mpl_CanvasToPlot2.setHtml(fig.to_html(include_plotlyjs='cdn'))
+        # self.mpl_CanvasToPlot2.resize(1390,750)
+        # self.middleLabel.setVisible(True)
+        # self.middleLabel.setText("Validation/Dev dataset predictions")
+        # self.middleLabel.setGeometry(405,37,1101,33)
+
+                    # fig= px.treemap(dev_predictions,             
+                                # x="x_coord", 
+                                # y="y_coord", 
+                                # color="patient_id",
+                                # size='probability', 
+                                # hover_data=['predicted'])
+
+    
+
 #=========================================================================
+#the function for the checkbox (negative & positive)
     def CheckBox_Function(self):
         text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid
         dt0 = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE TRUE = 0 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
@@ -991,6 +1099,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         if self.positive_Checkbox.isChecked():
             print("viewing positive predictions")
             self.negative_Checkbox.setChecked(False)
+
             if self.searchPatientID.text():
                 self.reusabledisplay_Function(text, df1)
 
@@ -998,13 +1107,14 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
                 self.reusabledisplay_Function(text, df1)
                 self.middleLabel.setText("This is all the test data patient's predictions (for positive)")  
 
-        else:
+        if not self.positive_Checkbox.isChecked() and not self.negative_Checkbox.isChecked():
             print("resetting checkbox ")
             self.middleLabel.setText("This is all the test data patient's predictions")
             dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE patient_id LIKE '%"+text+"%'  ").fetchall() 
             df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
             self.reusabledisplay_Function(text, df)
-#==========================================================================
+
+#============================================================================
     def searchPatient_Function(self):
         text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid
         print(text) 
@@ -1031,33 +1141,45 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.middleLabel.setVisible(True)
         self.middleLabel.setGeometry(405,37,1101,33)
         if self.searchPatientID.text():
-            self.middleLabel.setText("This is patient # "+ text  +" predictions")
+            if self.positive_Checkbox.isChecked():
+              self.middleLabel.setText("This is patient # "+ text  +" (positive) predictions")
+            if self.negative_Checkbox.isChecked():
+              self.middleLabel.setText("This is patient # "+ text  +" (negative) predictions")
         if not self.searchPatientID.text():
-            self.middleLabel.setText(" Test data predictions")
-      
-
+            if self.positive_Checkbox.isChecked():
+                self.middleLabel.setText(" Test data predictions")
+            if self.negative_Checkbox.isChecked():
+               self.middleLabel.setText(" Test data predictions")
+    
+        return df
 
 #============================================================================================
     def exportPredictionResult_Function(self):
-        print("Exporting prediction result")
         self.hideWidgets()
         self.labelWithPhoto.setVisible(True)
         self.progressBar.setVisible(True)
         self.progressbarAnimation(self.progressBar)
         self.progressBar.setVisible(False)
         self.labelWithPhoto.setVisible(False)
-
         self.tableView.setVisible(True)
         
+        print("Exporting prediction result in to a .csv file")
+
+        df = self.reusabledisplay_Function()
+
+        fileName, _ =  QtWidgets.QFileDialog.getSaveFileName(self,"Save",os.getcwd(),"CSV Files (*.csv)")
+
+        df.to_csv(fileName, index=False)
+            
+        # if fileName:
+        #     with open(fileName, "w") as file:
+        #       file.write(df)
+
         
         # dev_predictions.to_csv("dev_predictions.csv", index=False)
 
-
-
-
 #============================================================================================
-
-
+    #to flip the images 
     def my_transform(self,key="train", plot=False):
             train_sequence = [transforms.Resize((50,50)),
                             transforms.RandomHorizontalFlip(),
@@ -1075,6 +1197,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             return data_transforms[key]  
 
 #=====================================================================================
+   #to create datasets for the next layers, filter the images and take the first layer output images and use it as an input for the next CNN layer
     def createDatasets (self):
             print("creating datasets")
             self.hideWidgets()
@@ -1101,7 +1224,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
                 self.mpl_CanvasToPlot6.ax[1,m].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
                 self.mpl_CanvasToPlot6.ax[2,m].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
 
-            self.mpl_CanvasToPlot6.figure.suptitle("Image patch of a patient is converted in to RGB and the augmentation is performed", x=0.3 )    
+            self.mpl_CanvasToPlot6.figure.suptitle("            Image patch of a patient is converted in to RGB and the augmentation is performed, \n This is the output of the first layer and will be the input for the next CNN Layer", x=0.3 )    
             self.mpl_CanvasToPlot6.canvas.draw_idle()  
 #====================================================================================================
 #=================Functions==========================================================================   
@@ -1129,14 +1252,18 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     def createDatabase(self):  #this function is only use to create the database"
 
         # engine = sqlalchemy.create_engine('sqlite:///breastcancerprediction.db') #to create database engine if not yet created
-        self.df = pd.read_csv('test_predictions.csv',encoding='latin-1',index_col=[0])
+        self.df = pd.read_csv('./breastcancermodel/Cleaned_test_predictions.csv',encoding='latin-1',index_col=[0])
         #creating table in database and its columns
         connection = sqlite3.connect('breastcancerprediction.db')                                                                                                                                                                                                                                                                                                                                                        
-        create_sqltable = """CREATE TABLE IF NOT EXISTS breastCancer_Predictions ("TRUE" VARCHAR NOT NULL,"predicted" VARCHAR NOT NULL,"probability" VARCHAR NOT NULL, "x_coord" VARCHAR NOT NULL,  "y_coord" VARCHAR NOT NULL, "patient_id" VARCHAR NOT NULL )"""
+        create_sqltable = """CREATE TABLE IF NOT EXISTS Cleaned_test_predictions ("TRUE" VARCHAR NOT NULL,"predicted" VARCHAR NOT NULL,"probability" VARCHAR NOT NULL, "x_coord" VARCHAR NOT NULL,  "y_coord" VARCHAR NOT NULL, "patient_id" VARCHAR NOT NULL )"""
         cursor = connection.cursor()
         cursor.execute(create_sqltable)
-        self.df.to_sql('breastCancer_Predictions', connection, if_exists='replace') 
-        print("database created")        
+        self.df.to_sql('Cleaned_test_predictions', connection, if_exists='replace') 
+        print("database created")    
+
+        # dt = self.db.execute( """SELECT TRUE, predicted,probability,x_coord,y_coord, patient_id  FROM dev_predictions """)
+        # df= pd.DataFrame(dt, columns = [ 'TRUE', 'predicted','probability','x_coord', 'y_coord', 'patient_id' ])  
+        # df.to_csv("C:/Users/a_ade/Desktop/Files/Capstone/Breast_Cancer/breastcancermodel/Cleaned_dev_predictions.csv", sep=',', encoding='latin-1')
 
 #====================================================
   #function for Qfiledialog that let user select folders but also view what's in it , 
@@ -1297,6 +1424,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #==============================================================================
 #==============================================================================
    #this function is used by other functions
+   #to get the x and y coordinates of the tissue images dimensions
     def extract_coords(self,df):
         coord = df.path.str.rsplit("_", n=4, expand=True)
         coord = coord.drop([0, 1, 4], axis=1)
@@ -1306,7 +1434,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         df.loc[:, "x"] = coord.x.values
         df.loc[:, "y"] = coord.y.values
         return df
-   #this function is used by other functions
+
+   #this function is to get the cancer dataframe with its x and y coordinates
     def get_cancer_dataframe(self,patient_id, cancer_id):
         path = self.base_path + patient_id + "/" + cancer_id
         files = listdir(path)
@@ -1320,14 +1449,15 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         dataframe.loc[:, "x"] = dataframe.loc[:,"x"].str.replace("x", "", case=False).astype(np.int)
         dataframe.loc[:, "y"] = dataframe.loc[:,"y"].str.replace("y", "", case=False).astype(np.int)
         return dataframe
-   #this function is used by other functions
+
+   #we used the function above inside this function to get the patient's dataframe
     def get_patient_dataframe(self,patient_id):
         df_0 = self.get_cancer_dataframe(str(patient_id), "0")
         df_1 = self.get_cancer_dataframe(str(patient_id), "1")
         patient_df = df_0.append(df_1)
         return patient_df
 
-
+     #to visualize breast tissue slice via binary using the patient dataframe w/ values of x and y coordinates
     def visualizeBreastTissueSliceBinary_Function(self):
         print("Visualizing breast tissue slice")
         self.hideWidgets()
@@ -1335,8 +1465,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.BigScreenWidget.setVisible(True)
         self.mpl_CanvasToPlot3.setVisible(True)
 
-
-        patient_id = "10269"
+        patient_id = "10269" #using this patient sample to visualize in binary
         example_df = self.get_patient_dataframe(patient_id)
         
         self.mpl_CanvasToPlot3.ax[0].scatter(example_df.x.values, example_df.y.values, c=example_df.target.values, cmap="autumn",);
@@ -1352,7 +1481,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.mpl_CanvasToPlot3.ax[1].set_ylabel("y coord")
         self.mpl_CanvasToPlot3.ax[1].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
         self.mpl_CanvasToPlot3.canvas.draw_idle()  
-        self.mpl_CanvasToPlot3.figure.suptitle("                Binary target visualization per tissue slice. (Extracting all coordinates of image patches that are stored in the image names\n  and use the coordinates to reconstruct the whole breast tissue of a patient. ", x=0.41)  
+        self.mpl_CanvasToPlot3.figure.suptitle("                                                Binary target visualization per tissue slice. (Extracting all coordinates of image patches that are stored in the image names\n  and use the coordinates to reconstruct the whole breast tissue of a patient. ", x=0.41)  
 
 #==============================================================================
      #function to highlight cancerous patches
@@ -1398,7 +1527,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         
         return grid, mask, broken_patches, mask_proba
 
-
+#function to highlight cancerous patches/ function above is used in this function
     def visualizeBreastTissueImages_Function(self):
             self.hideWidgets()
             self.labelWithPhoto.setVisible(True)
@@ -1418,6 +1547,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             self.mpl_CanvasToPlot4.ax[1].imshow(grid, alpha=0.7)
             self.mpl_CanvasToPlot4.ax[0].grid(False)
             self.mpl_CanvasToPlot4.ax[1].grid(False)
+            
               
             # self.mpl_CanvasToPlot4.ax[0].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
             # self.mpl_CanvasToPlot4.ax[1].tick_params(labelbottom=False, bottom=False,labelleft=False, left=False)
@@ -1428,20 +1558,22 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 
 #==============================================================================
 #==============================================================================
-
+#To view random cancerous patches vs healthy patches / cancerous mostly indicates a dark purple 
     def breastTissuePatches_Function(self):
         print("Viewing breast tissue patches")
         self.hideWidgets()
-
+        self.labelWithPhoto.setVisible(True)
         self.progressBar.setVisible(True)
         self.progressbarAnimation(self.progressBar)
         self.progressBar.setVisible(False)
+        self.labelWithPhoto.setVisible(False)
 
         self.plottingLeftWidget.setVisible(True)
         self.plottingRightWidget.setVisible(True)
 
-        #df is the path of the microscopic images, variable declare at uIStructure.py file
+        #df is the path of the microscopic images, variable declare at class uIStructure.py file
         self.df.target = self.df.target.astype(np.int)
+        #it selects random data that is already classified as 0 or 1 stored in a folder
         pos_selection = np.random.choice(self.df[self.df.target==1].index.values, size=35, replace=False)
         neg_selection = np.random.choice(self.df[self.df.target==0].index.values, size=35, replace=False)
 
@@ -1474,8 +1606,8 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.mpl_RightCanvasToPlot.figure.suptitle("Healthy patches", x = 0.3)    
        
   #=============================================================================      
+   #to hide some widgets, while showing current called widgets
     def hideWidgets(self):
-        #hiding some widgets
             self.mpl_CanvasToPlot3.setVisible(False)
             self.mpl_CanvasToPlot7.setVisible(False)
             self.mpl_CanvasToPlot4.setVisible(False)
@@ -1487,6 +1619,10 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             self.mpl_CanvasToPlot.setVisible(False)
             self.BigScreenWidget.setVisible(False)
             self.rowsCount_01.setVisible(False)
+            self.view_graph.setVisible(False)
+            self.view_table.setVisible(False)
+            self.view_graph1.setVisible(False)
+            self.view_table1.setVisible(False)
 
             self.mpl_CanvasToPlot4.setVisible(False)
             self.labelWithPhoto.setVisible(True)
@@ -1499,17 +1635,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             self.plottingRightWidget.setVisible(False)
             self.mpl_CanvasToPlot8.setVisible(False)
             self.mpl_CanvasToPlot9.setVisible(False)
-        
 
 #==============================================================================
-    def SetColor(self,y):
-        if(y == 0):
-            return "green"
-        elif(y == 1):
-            return "red"
-
-
-#==============================================================================
+#reviewing patches in all microscopic images, such as how many patches are covered with IDC Cancer
     def reviewPatches_Function(self):
         print("Reviewing patches")
         self.hideWidgets()
@@ -1548,9 +1676,6 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         
         # #=====================================================
         # #3rd column axes
-        colors = {'A':'steelblue',
-          'B':'firebrick'}
-
         fig.add_trace(          
         go.Histogram(x=self.df.target, name="no(0) versus yes(1)", showlegend=False ),
             row=1, col=3, secondary_y=False,
@@ -1598,13 +1723,17 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         self.showUploadedFilesButton.setText(_translate("mainWindow", "Show uploaded files"))
         self.dataCounts.setText(_translate("mainWindow", "Data counts"))
         self.reviewPatches.setText(_translate("mainWindow", "Review Patches"))
+        self.view_table.setText(_translate("mainWindow", "View Table"))
+        self.view_graph.setText(_translate("mainWindow", "View Graph"))
+        self.view_table1.setText(_translate("mainWindow", "View Table"))
+        self.view_graph1.setText(_translate("mainWindow", "View Graph"))
         self.visualizeBinary.setText(_translate("mainWindow", "Visualize  breast tissue slice (binary target)"))
         self.visualizeBreastTissue.setText(_translate("mainWindow", "Highlight cancerous patches"))
         self.viewBreastTissueLabel.setText(_translate("mainWindow", "          VIEW TISSUES       "))
         self.breastTissuePatches.setText(_translate("mainWindow", " breast tissue patches (cancerous and healthy)"))
         self.machineLearningModelLabel.setText(_translate("mainWindow", "     MACHINE LEARNING (CNN)      "))
         self.ViewDatasets.setText(_translate("mainWindow", "View (training, validation, and  test data sets)"))
-        self.createDatasetButton.setText(_translate("mainWindow", "Create dataset for training"))
+        self.createDatasetButton.setText(_translate("mainWindow", "2nd Layer input of CNN"))
         self.applyCNNfilter_Button.setText(_translate("mainWindow", "  Apply CNN Filter"))
         self.LowLRButton.setText(_translate("mainWindow", "  start_lr = 1e-6\nend_lr = 0.006"))
         self.HighLRButton.setText(_translate("mainWindow", "   start_lr = 1e-6\nend_lr = 0.1"))
