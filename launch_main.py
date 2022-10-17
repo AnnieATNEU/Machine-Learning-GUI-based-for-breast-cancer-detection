@@ -214,7 +214,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #=================================================================================
     def SettingCNNFilter_Function(self):
           print("setting CNNFilter...")
-
+       
           model = torchvision.models.resnet18(pretrained=False) #Model chosen
           if run_training:
                 model.load_state_dict(torch.load("../input/pretrained-pytorch-models/resnet18-5c106cde.pth"))
