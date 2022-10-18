@@ -190,6 +190,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
  #*******************************************************************
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         print(self.device)
+        print("central processing units (CPUs) performed the calculations necessary to render graphics.")
 
         self.model = self.SettingCNNFilter_Function()
 
@@ -219,7 +220,10 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
           if run_training:
                 model.load_state_dict(torch.load("../input/pretrained-pytorch-models/resnet18-5c106cde.pth"))
           num_features = model.fc.in_features
-          print(num_features)
+          print("There are")
+          print(num_features )
+          print("num of features in this model")
+         
 
           ## this is the 3 layers of the Convolutional Neural Network (CNN)
           model.fc = nn.Sequential(
@@ -246,9 +250,9 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     #using the cross entropy loss with K=2 output neurons or 2 classes that can be hot (1) or cold (0) with  ∑𝑘𝑦𝑛𝑘=1 :
     #to weight the positive and negative classes such that we are able to deal with the class imbalance.
 
-          if self.device.type=="cuda":
-             class_weights = self.class_weights.cuda()
-          print("You can see that class 1 (positive cancer) has a higher weight." + class_weights)
+        #   if self.device.type=="cuda":
+        #      class_weights = self.class_weights.cuda()
+        #   print("You can see that class 1 (positive cancer) has a higher weight." + class_weights)
           
     #Selecting an evaluation metric--------------------------------------------------
     #--------------------------------------------------------------------------------
@@ -822,15 +826,26 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 # for training and developing. 
     def setTargetDatadistribution_Function(self):
 
-        
-        self.targetdistributions_Function(traindata=70, validationdata=15, testdata=15)
+        trainInput= self.train.text()
+        validationInput= self.train.text()
+        testInput= self.train.text()
+
+        trainInput_= self.train.text()
+        validationInput_= self.train.text()
+        testInput_= self.train.text()
+
+        # self.targetdistributions_Function(traindata=70, validationdata=15, testdata=15)
 
     #def targetdistributions_Function(self,traindata=70, validationdata=15, testdata=15):
-    def targetdistributions_Function(self):
+    def targetdistributions_Function(self,testsize1, testsize2):
             self.hideWidgets()
             self.BigScreenWidget.setVisible(True)
             self.mpl_CanvasToPlot5.setVisible(True)
 
+            # traindata=0.3 
+            # devdata,testdata=0.5
+            testsize1=0.3
+            testsize2=0.5
 
             patients = self.df.patient_id.unique()
             data=self.df
@@ -840,20 +855,21 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
             #  dev_ids = train_test_split(sub_test_ids,(test_size=30)/100),random_state=0)
 
 
-            train_ids, sub_test_ids = train_test_split(patients,test_size=0.3,random_state=0)
-            test_ids, dev_ids = train_test_split(sub_test_ids, test_size=0.5, random_state=0)
+            train_ids, sub_test_ids = train_test_split(patients,test_size=testsize1, random_state=0)
+            dev_ids,test_ids = train_test_split(sub_test_ids, test_size=testsize2, random_state=0)
             print("70 percent data for train & 15 percent for dev and 15 for test "+ str(len(train_ids)/patients.shape[0]*100), str(len(dev_ids)/patients.shape[0]*100), str(len(test_ids)/patients.shape[0]*100))
             print(str(len(train_ids)/patients.shape[0]*100), str(len(dev_ids)/patients.shape[0]*100), str(len(test_ids)/patients.shape[0]*100))
-            print("patients: distribution"+ str(len(train_ids)), str(len(dev_ids)), str(len(test_ids)) +"  = 279")
+            # print("patients: distribution"+ str(len(train_ids)), str(len(dev_ids)), str(len(test_ids)) +"  = 279")
 
 
             train_df = data.loc[data.patient_id.isin(train_ids),:].copy()
             test_df = data.loc[data.patient_id.isin(test_ids),:].copy()
             dev_df = data.loc[data.patient_id.isin(dev_ids),:].copy()
+    
 
-            self.train_df = self.extract_coords(train_df)
-            self.test_df = self.extract_coords(test_df)
-            self.dev_df = self.extract_coords(dev_df)
+            # self.train_df = self.extract_coords(train_df)
+            # self.test_df = self.extract_coords(test_df)
+            # self.dev_df = self.extract_coords(dev_df)
 
             self.BigScreenWidget.setVisible(True)
             self.mpl_CanvasToPlot2.setVisible(True)
@@ -924,7 +940,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
         
         labels = ["no cancer", "cancer"]
         index_labels = ["actual no cancer", "actual cancer"]
-        col_labels = ["predicted no cancer", "predicted cancer"]
+        col_labels = ["____predicted no cancer |", "predicted cancer"]
         confusion = confusion_matrix(y_t, y_p, labels=labels)
         confusion_df = pd.DataFrame(confusion, index=index_labels, columns=col_labels)
         for n in range(2):
@@ -961,7 +977,6 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 
         conf_matrix_test = self.get_confusion_matrix(test_predictions.TRUE, test_predictions.predicted)
 
-
         # fpr, tpr, thresholds = roc_curve(test_predictions.true, test_predictions.proba)
         # fig, ax = plt.subplots(1,1)
         # ax.plot(fpr,tpr); ax.set_xlabel('False Positive Rate') ; ax.set_ylabel('True Positive Rate'); plt.title('ROC curve - Dev (validation)')
@@ -985,7 +1000,7 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
     def viewAllpatientsProbabilityResult_Function(self):
         print("Viewing all patient's probability result")
         self.hideWidgets()
-        self.createDatabase()
+        # self.createDatabase()
         self.labelWithPhoto.setVisible(True)
         self.progressBar.setVisible(True)
         self.progressbarAnimation(self.progressBar)
@@ -1077,48 +1092,50 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #=========================================================================
 #the function for the checkbox (negative & positive)
     def CheckBox_Function(self):
-        text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid
-        dt0 = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE TRUE = 0 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
-        df0= pd.DataFrame(dt0, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
-       
-        dt1 = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE TRUE = 1 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
-        df1= pd.DataFrame(dt1, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
-              
+        text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid      
         
         if self.negative_Checkbox.isChecked():
             print("viewing negative predictions")
             self.positive_Checkbox.setChecked(False)
 
+            dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM Cleaned_test_predictions WHERE TRUE = 0 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
+            df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
+       
             if self.searchPatientID.text():
-                self.reusabledisplay_Function(text, df0)
+                self.reusabledisplay_Function(text, df)
 
             if not self.searchPatientID.text():
-                self.reusabledisplay_Function(text, df0)
+                self.reusabledisplay_Function(text, df)
                 self.middleLabel.setText("This is all the test data patient's predictions (for negative)")  
 
         if self.positive_Checkbox.isChecked():
             print("viewing positive predictions")
             self.negative_Checkbox.setChecked(False)
 
+            dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM Cleaned_test_predictions WHERE TRUE = 1 AND  patient_id LIKE '%"+text+"%'  ").fetchall() 
+            df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
+        
             if self.searchPatientID.text():
-                self.reusabledisplay_Function(text, df1)
+                self.reusabledisplay_Function(text, df)
 
             if not self.searchPatientID.text():
-                self.reusabledisplay_Function(text, df1)
+                self.reusabledisplay_Function(text, df)
                 self.middleLabel.setText("This is all the test data patient's predictions (for positive)")  
 
         if not self.positive_Checkbox.isChecked() and not self.negative_Checkbox.isChecked():
             print("resetting checkbox ")
             self.middleLabel.setText("This is all the test data patient's predictions")
-            dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE patient_id LIKE '%"+text+"%'  ").fetchall() 
+            dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM Cleaned_test_predictions WHERE patient_id LIKE '%"+text+"%'  ").fetchall() 
             df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])        
             self.reusabledisplay_Function(text, df)
+
+        return text, df
 
 #============================================================================
     def searchPatient_Function(self):
         text= self.searchPatientID.text() # value end-user entered in Qlineedit object to search patientid
         print(text) 
-        dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM breastCancer_Predictions WHERE patient_id LIKE '%"+text+"%' ").fetchall() 
+        dt = self.db.execute("SELECT TRUE,predicted,probability,x_coord,y_coord,patient_id  FROM Cleaned_test_predictions WHERE patient_id LIKE '%"+text+"%' ").fetchall() 
         df= pd.DataFrame(dt, columns = [ 'TRUE','predicted','probability','x_coord','y_coord','patient_id'])
         
         self.reusabledisplay_Function(text,df)
@@ -1156,28 +1173,30 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 #============================================================================================
     def exportPredictionResult_Function(self):
         self.hideWidgets()
-        self.labelWithPhoto.setVisible(True)
-        self.progressBar.setVisible(True)
-        self.progressbarAnimation(self.progressBar)
-        self.progressBar.setVisible(False)
-        self.labelWithPhoto.setVisible(False)
-        self.tableView.setVisible(True)
         
         print("Exporting prediction result in to a .csv file")
+        self.CheckBox_Function()
 
-        df = self.reusabledisplay_Function()
+        newModel = self.tableView.model()
+        dataFrame = newModel._df.copy()
 
         fileName, _ =  QtWidgets.QFileDialog.getSaveFileName(self,"Save",os.getcwd(),"CSV Files (*.csv)")
 
-        df.to_csv(fileName, index=False)
-            
-        # if fileName:
-        #     with open(fileName, "w") as file:
-        #       file.write(df)
+        if not fileName: 
+                    pass
+               
+        else: 
+            if os.name == "nt":
+                DOWNLOAD_FOLDER = f"{os.getenv('USERPROFILE')}//Downloads"
+                fileName.setDirectory(DOWNLOAD_FOLDER)
+                dataFrame.to_csv(fileName, index=False)
+                
 
-        
-        # dev_predictions.to_csv("dev_predictions.csv", index=False)
-
+            else:  # PORT: For *Nix systems
+                DOWNLOAD_FOLDER = f"{os.getenv('HOME')}/Downloads"
+                fileName.setDirectory(DOWNLOAD_FOLDER)
+                dataFrame.to_csv(fileName, index=False)
+     
 #============================================================================================
     #to flip the images 
     def my_transform(self,key="train", plot=False):
