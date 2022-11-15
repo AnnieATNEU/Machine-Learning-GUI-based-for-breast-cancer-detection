@@ -469,7 +469,7 @@ class Ui_mainWindow(object):
         self.machineLearningCnnFrame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.machineLearningCnnFrame.setObjectName("machineLearningCnnFrame")
         self.ViewDatasets = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.ViewDatasets.setGeometry(QtCore.QRect(5, 33, 351, 36))
+        self.ViewDatasets.setGeometry(QtCore.QRect(10, 90, 341, 39))
         self.ViewDatasets.setStyleSheet("\n"
 "QPushButton#ViewDatasets{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -499,7 +499,7 @@ class Ui_mainWindow(object):
 
         self.train = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
         self.train.setObjectName(u"train")
-        self.train.setGeometry(QtCore.QRect(5, 77, 39, 31))
+        self.train.setGeometry(QtCore.QRect(70, 50, 70, 35))
         self.train.setStyleSheet(u"\n"
 "\n"
 "QLineEdit#train{border-radius: 6px;\n"
@@ -521,9 +521,10 @@ class Ui_mainWindow(object):
         self.train.setAlignment(Qt.AlignCenter)
         self.train.setReadOnly(False)
         self.train.setClearButtonEnabled(False)
+        self.train.setReadOnly(True)
         self.validationdata_ = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
         self.validationdata_.setObjectName(u"validationdata_")
-        self.validationdata_.setGeometry(QtCore.QRect(46, 77, 39, 31))
+        self.validationdata_.setGeometry(QtCore.QRect(143, 50, 61, 35))
         self.validationdata_.setStyleSheet(u"\n"
 "\n"
 "QLineEdit#validationdata_{border-radius: 6px;\n"
@@ -547,7 +548,7 @@ class Ui_mainWindow(object):
         self.validationdata_.setClearButtonEnabled(False)
         self.testdata_ = QtWidgets.QLineEdit(self.machineLearningCnnFrame)
         self.testdata_.setObjectName("testdata_")
-        self.testdata_.setGeometry(QtCore.QRect(87, 77, 39, 31))
+        self.testdata_.setGeometry(QtCore.QRect(210, 50, 61, 35))
         self.testdata_.setStyleSheet("\n"
 "\n"
 "QLineEdit#testdata_{border-radius: 6px;\n"
@@ -569,9 +570,10 @@ class Ui_mainWindow(object):
         self.testdata_.setAlignment(Qt.AlignCenter)
         self.testdata_.setReadOnly(False)
         self.testdata_.setClearButtonEnabled(False)
+        self.testdata_.setReadOnly(True)
         self.datadistributionLabel = QtWidgets.QLabel(self.machineLearningCnnFrame)
         self.datadistributionLabel.setObjectName("datadistributionLabel")
-        self.datadistributionLabel.setGeometry(QtCore.QRect(10, 107, 281, 21))
+        self.datadistributionLabel.setGeometry(QtCore.QRect(40,  30, 281, 21))
         self.datadistributionLabel.setStyleSheet("font: 7pt \"Segoe UI\";\n"
 "\n"
 "	background-color: rgb(43, 86, 129);\n"
@@ -580,35 +582,7 @@ class Ui_mainWindow(object):
 
 
 
-        self.createDatasetButton = QtWidgets.QPushButton(self.machineLearningCnnFrame)
-        self.createDatasetButton.setGeometry(QtCore.QRect(129, 76, 221, 31))
-        self.createDatasetButton.setStyleSheet("\n"
-"QPushButton#createDatasetButton{\n"
-"    font: 500 9pt \"Segoe UI\";\n"
-"    \n"
-"border-color:rgb(16, 79, 127);\n"
-"background-color: rgb(149, 200, 255);\n"
-"border-radius:12px;\n"
-"border-style:outset;\n"
-"border-width:2px;\n"
-"\n"
-"border-color:rgb(16, 79, 127);\n"
-"\n"
-";}\n"
-"\n"
-"QPushButton:hover#createDatasetButton\n"
-"{\n"
-"border-width:2px;\n"
-"border-color: rgb(84, 204, 255);\n"
-"}\n"
-"\n"
-"")
-        icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap("imagesicons/server-icons-3716.png"), QtGui.QIcon.Normal, QtGui.QIcon.On)
-        self.createDatasetButton.setIcon(icon7)
-        self.createDatasetButton.setIconSize(QtCore.QSize(23, 23))
-        self.createDatasetButton.setObjectName("createDatasetButton")
-
+     
         self.applyCNNfilter_Button = QtWidgets.QPushButton(self.machineLearningCnnFrame)
         self.applyCNNfilter_Button.setGeometry(QtCore.QRect(8, 137, 341, 34))
         self.applyCNNfilter_Button.setStyleSheet("\n"
@@ -919,7 +893,6 @@ class Ui_mainWindow(object):
         self.SearchLearningRatelabel.raise_()
         self.dividerFrameEnterPatient.raise_()
         self.ViewDatasets.raise_()
-        self.createDatasetButton.raise_()
         self.applyCNNfilter_Button.raise_()
         self.searchPatientID.raise_()
         
@@ -1010,8 +983,8 @@ class Ui_mainWindow(object):
         self.tabWidget.addTab(self.tab_3, icon12, "")
 
 #===============================================================================
-        self.view_table = QtWidgets.QPushButton(self.BigScreenWidget)
-        self.view_table.setGeometry(QtCore.QRect(60, 750, 161, 31))
+        self.view_table = QtWidgets.QPushButton(self.tab1Behindwidget)
+        self.view_table.setGeometry(QtCore.QRect(1000, 20, 161, 31))
         self.view_table.setStyleSheet("\n"
 "QPushButton#view_table{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -1037,8 +1010,8 @@ class Ui_mainWindow(object):
         self.view_table.setObjectName("view_table")
         self.view_table.setVisible(False)
 
-        self.view_graph = QtWidgets.QPushButton(self.BigScreenWidget)
-        self.view_graph.setGeometry(QtCore.QRect(240, 750, 181, 31))
+        self.view_graph = QtWidgets.QPushButton(self.tab1Behindwidget)
+        self.view_graph.setGeometry(QtCore.QRect(1180, 20, 181, 31))
         self.view_graph.setStyleSheet("\n"
 "QPushButton#view_graph{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -1064,8 +1037,8 @@ class Ui_mainWindow(object):
         self.view_graph.setObjectName("view_graph")
         self.view_graph.setVisible(False)
 #==========================================================
-        self.view_table1 = QtWidgets.QPushButton(self.BigScreenWidget)
-        self.view_table1.setGeometry(QtCore.QRect(60, 750, 161, 31))
+        self.view_table1 = QtWidgets.QPushButton(self.tab1Behindwidget)
+        self.view_table1.setGeometry(QtCore.QRect(1000, 20, 161, 31))
         self.view_table1.setStyleSheet("\n"
 "QPushButton#view_table1{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -1091,8 +1064,8 @@ class Ui_mainWindow(object):
         self.view_table1.setObjectName("view_table1")
         self.view_table1.setVisible(False)
 
-        self.view_graph1 = QtWidgets.QPushButton(self.BigScreenWidget)
-        self.view_graph1.setGeometry(QtCore.QRect(240, 750, 181, 31))
+        self.view_graph1 = QtWidgets.QPushButton(self.tab1Behindwidget)
+        self.view_graph1.setGeometry(QtCore.QRect(1180, 20, 181, 31))
         self.view_graph1.setStyleSheet("\n"
 "QPushButton#view_graph1{\n"
 "    font: 500 9pt \"Segoe UI\";\n"
@@ -1148,7 +1121,6 @@ class Ui_mainWindow(object):
 
         #to make plotly canvas
         self.mpl_CanvasToPlot2 = QWebEngineView(self.BigScreenWidget)
-
 
 #=====================================================================
      #progress bar after button clicked
