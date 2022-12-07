@@ -1,6 +1,7 @@
 # Machine Learning GUI (MLG) based for breast cancer detection is a user interface Artificial Intelligence| Machine Learning Model that can predict Invasive Ductal Carcinoma (IDC) Breast Cancer
 
 ![MLG (2)](https://github.com/adequitATSSU/Machine-Learning-GUI-based-for-breast-cancer-detection/blob/main/program_screenshots/Screenshot%20(2397).png)
+(Figure 01. Updated UI)
 
 ![MLG (1)](https://user-images.githubusercontent.com/77852190/191778979-2f251539-1f36-4b57-967c-a4c7d45f9be3.png)
 (Figure 01. UI showing cancerous and healthy patches)
