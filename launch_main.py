@@ -995,11 +995,6 @@ class Main(QtWidgets.QMainWindow, Ui_mainWindow):
 
 
         conf_matrix_test = self.get_confusion_matrix(test_predictions.TRUE, test_predictions.predicted)
-
-        # fpr, tpr, thresholds = roc_curve(test_predictions.true, test_predictions.proba)
-        # fig, ax = plt.subplots(1,1)
-        # ax.plot(fpr,tpr); ax.set_xlabel('False Positive Rate') ; ax.set_ylabel('True Positive Rate'); plt.title('ROC curve - Dev (validation)')
-        # # print(thresholds)
         
         from sklearn.metrics import classification_report,balanced_accuracy_score, roc_curve,roc_auc_score
         auc_score_test = roc_auc_score(test_predictions.TRUE, test_predictions.probability)
