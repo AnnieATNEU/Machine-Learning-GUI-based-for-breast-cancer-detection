@@ -36,10 +36,10 @@ pip install -r requirements.txt -t <copy-full-pathto-your\.venv\Lib\site-package
 (Figure 04. UI reviewing patches)
 
 ![MLG (1)](![image](https://github.com/adequitATSSU/Machine-Learning-GUI-based-for-breast-cancer-detection/blob/main/program_screenshots/Screenshot%20(2461).png)
-(Figure 01. UI showing cancerous and healthy patches)
+(Figure 05. UI showing cancerous and healthy patches)
 
-![MLG (1)](https://user-images.githubusercontent.com/77852190/191778979-2f251539-1f36-4b57-967c-a4c7d45f9be3.png)
-(Figure 01. UI showing cancerous and healthy patches)
+![MLG (1)](https://github.com/adequitATSSU/Machine-Learning-GUI-based-for-breast-cancer-detection/blob/main/program_screenshots/Screenshot%20(2471).png)
+(Figure 06. UI showing cancer predictions with sunburst chart)
 
-![MLG (1)](https://user-images.githubusercontent.com/77852190/191778979-2f251539-1f36-4b57-967c-a4c7d45f9be3.png)
-(Figure 01. UI showing cancerous and healthy patches)
+![MLG (1)](https://github.com/adequitATSSU/Machine-Learning-GUI-based-for-breast-cancer-detection/blob/main/program_screenshots/Screenshot%20(2478).png)
+(Figure 07. UI  UI showing cancer predictions)
