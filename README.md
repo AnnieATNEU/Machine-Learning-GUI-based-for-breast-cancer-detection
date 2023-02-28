@@ -34,3 +34,12 @@ pip install -r requirements.txt -t <copy-full-pathto-your\.venv\Lib\site-package
 
 ![MLG](https://user-images.githubusercontent.com/77852190/191781528-1b00e8a4-eebf-4c11-840c-12eca9a1a963.png)
 (Figure 04. UI reviewing patches)
+
+![MLG (1)](![image](https://github.com/adequitATSSU/Machine-Learning-GUI-based-for-breast-cancer-detection/blob/main/program_screenshots/Screenshot%20(2461).png)
+(Figure 01. UI showing cancerous and healthy patches)
+
+![MLG (1)](https://user-images.githubusercontent.com/77852190/191778979-2f251539-1f36-4b57-967c-a4c7d45f9be3.png)
+(Figure 01. UI showing cancerous and healthy patches)
+
+![MLG (1)](https://user-images.githubusercontent.com/77852190/191778979-2f251539-1f36-4b57-967c-a4c7d45f9be3.png)
+(Figure 01. UI showing cancerous and healthy patches)
